@@ -1,0 +1,11 @@
+.DS_Store
+.dsh-smoke/
+.models/
+.muxiva/venv/
+.muxiva/venv-unsupported-*/
+.muxiva/cache/
+*.partial
+*.tgz
+__pycache__/
+*.py[cod]
+node_modules/

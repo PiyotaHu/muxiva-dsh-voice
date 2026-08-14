@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm test
+      - run: npm run pack:smoke
+      - run: python -m compileall -q python .muxiva/nodes
+
+  supply-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate model lock shape
+        run: |
+          jq -e '.version == 1 and (.models | length == 4)' models.lock.json
+          jq -e 'all(.models[]; (.sha256 | test("^[0-9a-f]{64}$")) and (.url | startswith("https://")))' models.lock.json
+
+  browser-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/check-package.mjs
+      - name: Ensure npm install has no lifecycle scripts
+        run: '! jq -e ''.scripts.prepare or .scripts.preinstall or .scripts.install or .scripts.postinstall'' package.json'

@@ -1,0 +1,116 @@
+"""Silero VAD + streaming Zipformer2 CTC ASR, executed inside a Muxiva Python Node."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import muxiva
+
+
+class SherpaVadAsr:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
+        self.config = config or {}
+        self.sherpa = None
+        self.np = None
+        self.vad = None
+        self.recognizer = None
+        self.stream = None
+        self.vad_buffer = None
+        self.vad_window_size = 512
+        self.vad_offset = 0
+        self.speaking = False
+        self.last_partial = ""
+
+    def on_prepare(self, _ctx=None) -> None:
+        try:
+            import numpy as np
+            import sherpa_onnx
+        except ImportError as error:
+            raise RuntimeError("run `muxiva-dsh-voice doctor --fix` to install sherpa-onnx and numpy") from error
+        self.np = np
+        self.sherpa = sherpa_onnx
+        model_dir = Path(str(self.config.get("model_dir", ".models/asr-zh"))).resolve()
+        vad_model = Path(str(self.config.get("vad_model", ".models/silero_vad.onnx"))).resolve()
+        required = [model_dir / "model.onnx", model_dir / "tokens.txt", vad_model]
+        missing = [str(path) for path in required if not path.is_file()]
+        if missing:
+            raise RuntimeError(f"voice model files are missing: {', '.join(missing)}; run `npm run models`")
+
+        self.recognizer = sherpa_onnx.OnlineRecognizer.from_zipformer2_ctc(
+            tokens=str(model_dir / "tokens.txt"),
+            model=str(model_dir / "model.onnx"),
+            num_threads=int(self.config.get("num_threads", 2)),
+            sample_rate=16_000,
+            feature_dim=80,
+            enable_endpoint_detection=False,
+            decoding_method="greedy_search",
+            provider="cpu",
+            debug=False,
+        )
+        self.stream = self.recognizer.create_stream()
+
+        vad_config = sherpa_onnx.VadModelConfig()
+        vad_config.silero_vad.model = str(vad_model)
+        vad_config.silero_vad.threshold = float(self.config.get("vad_threshold", 0.5))
+        vad_config.silero_vad.min_silence_duration = float(self.config.get("min_silence_seconds", 0.45))
+        vad_config.silero_vad.min_speech_duration = float(self.config.get("min_speech_seconds", 0.20))
+        vad_config.silero_vad.max_speech_duration = float(self.config.get("max_speech_seconds", 30.0))
+        vad_config.sample_rate = 16_000
+        self.vad_window_size = vad_config.silero_vad.window_size
+        self.vad = sherpa_onnx.VoiceActivityDetector(vad_config, buffer_size_in_seconds=60)
+        self.vad_buffer = np.empty(0, dtype=np.float32)
+
+    def on_process(self, frame, ctx) -> None:
+        if frame.sample_rate_hz != 16_000 or frame.channels != 1:
+            raise ValueError("Sherpa VAD/ASR input must be mono PCM16 at 16 kHz")
+        samples = self.np.frombuffer(frame.data, dtype=self.np.int16).astype(self.np.float32) / 32768.0
+        self.stream.accept_waveform(16_000, samples)
+        while self.recognizer.is_ready(self.stream):
+            self.recognizer.decode_stream(self.stream)
+        partial = self.recognizer.get_result(self.stream).strip()
+        if partial and partial != self.last_partial:
+            self.last_partial = partial
+            ctx.emit("transcript_preview_out", muxiva.TextFrame(partial, sequence=frame.sequence))
+            self._event(ctx, "muxiva.voice.transcript.preview", {"text": partial}, frame.sequence)
+
+        self.vad_buffer = self.np.concatenate((self.vad_buffer, samples))
+        window = self.vad_window_size
+        while self.vad_offset + window <= len(self.vad_buffer):
+            self.vad.accept_waveform(self.vad_buffer[self.vad_offset:self.vad_offset + window])
+            self.vad_offset += window
+            detected = self.vad.is_speech_detected()
+            if detected and not self.speaking:
+                self.speaking = True
+                self._event(ctx, "muxiva.voice.speech.started", {"active": True, "detector": "silero"}, frame.sequence)
+                ctx.emit_signal("muxiva.voice.speech.started", {"node": "muxiva.sherpa_vad_asr", "detector": "silero"})
+            while not self.vad.empty():
+                self.vad.pop()
+                self._commit(ctx, frame.sequence)
+        if self.vad_offset > window * 20:
+            self.vad_buffer = self.vad_buffer[self.vad_offset - window * 4:]
+            self.vad_offset = window * 4
+
+    def _commit(self, ctx, sequence: int) -> None:
+        if not self.speaking:
+            return
+        self.speaking = False
+        self.stream.input_finished()
+        while self.recognizer.is_ready(self.stream):
+            self.recognizer.decode_stream(self.stream)
+        text = self.recognizer.get_result(self.stream).strip()
+        self._event(ctx, "muxiva.voice.speech.stopped", {"active": False, "detector": "silero"}, sequence)
+        if text:
+            ctx.emit("text_out", muxiva.TextFrame(text, sequence=sequence))
+            self._event(ctx, "muxiva.voice.transcript.completed", {"text": text}, sequence)
+        self.stream = self.recognizer.create_stream()
+        self.last_partial = ""
+
+    @staticmethod
+    def _event(ctx, topic: str, payload: dict[str, Any], sequence: int) -> None:
+        ctx.emit("event_out", muxiva.EventFrame(
+            topic, json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            source="muxiva.sherpa_vad_asr", sequence=sequence,
+        ))
+        ctx.publish_notification(topic, payload)

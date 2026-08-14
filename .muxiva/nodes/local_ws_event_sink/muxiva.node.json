@@ -1,0 +1,5 @@
+{
+  "format":"muxiva.node/v1","package_id":"muxiva_dsh_local_ws_event_sink","display_name":"DSH Voice Event Egress","node_type":"muxiva.dsh.local_ws_event_sink","language":"python","factory_version":"0.1.0","kind":"sink","entrypoint":"node:LocalWsEventSink","category":"transport","capability":"local.voice_events.egress","summary":"Maps Muxiva semantic voice Events onto the versioned DSH browser bridge.","tags":["dsh","events","transcript"],
+  "ports":[{"name":"event_in","direction":"input","frame_type":"event","schema":{"semantics":["speech_state","transcript","tts_state"]}}],
+  "config_schema":{"type":"object","properties":{},"additionalProperties":false}
+}

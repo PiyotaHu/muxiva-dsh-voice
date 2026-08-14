@@ -1,0 +1,6 @@
+# Installed after @deepseek-ai/dsh-web-app. The node half is intentionally
+# empty; its dsh.client declaration mounts the browser voice control through
+# DSH's additive conversation.input.left slot.
+- insert:
+    - id: muxiva-dsh-voice
+      name: '@muxiva/dsh-voice'

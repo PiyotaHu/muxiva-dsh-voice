@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible voice, DSH, model, or packaging failure.
+body:
+  - type: textarea
+    attributes:
+      label: Doctor output
+      description: Run `npx @muxiva/dsh-voice doctor`. Remove private paths if needed.
+    validations: { required: true }
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: Exact steps, expected behavior, and actual behavior.
+    validations: { required: true }
+  - type: dropdown
+    attributes:
+      label: Area
+      options: [Capture, VAD, ASR, DSH bridge, TTS, Playback, Packaging, Documentation]
+    validations: { required: true }
+  - type: textarea
+    attributes:
+      label: Muxiva semantic trace
+      description: Attach the smallest relevant excerpt. Never attach microphone media without consent.

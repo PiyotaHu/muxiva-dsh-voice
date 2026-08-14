@@ -1,0 +1,6 @@
+**/__pycache__/**
+**/*.pyc
+**/*.pyo
+.models/
+.muxiva/venv/
+.muxiva/venv-unsupported-*/

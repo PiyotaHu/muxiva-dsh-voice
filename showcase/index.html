@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Muxiva 驱动的 DeepSeek Harness 本地全双工语音助手">
+  <title>Muxiva Voice × DeepSeek Harness</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="./"><span class="mark">M</span><span>Muxiva Voice</span></a>
+    <nav><a href="#pipeline">Pipeline</a><a href="./docs.html">Documents</a><a href="https://github.com/muxiva/muxiva-dsh-voice">GitHub</a></nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow"><span></span> LOCAL · FULL DUPLEX · OPEN SOURCE</div>
+      <h1>让 Agent 真正<br><em>听见你。</em></h1>
+      <p class="lead">DeepSeek Harness 负责思考与行动，Muxiva 负责每一个实时音频帧。<br>本地 VAD、流式 ASR、可打断 TTS，在 Apple Silicon 上丝滑运行。</p>
+      <div class="actions">
+        <button class="primary" data-copy-install>复制一键安装</button>
+        <a class="secondary" href="./docs.html">阅读文档 <span>↗</span></a>
+      </div>
+      <div class="install" aria-label="安装命令"><code>dsh plugin --profile web add @muxiva/dsh-voice</code><button data-copy-install aria-label="复制安装命令">⌘C</button></div>
+      <p class="alpha">Alpha · 源码体验已开放；公开一键安装随 Muxiva Python wheel Release 解锁。</p>
+
+      <div class="voice-demo" aria-label="交互效果预览">
+        <div class="orb-wrap"><div class="orb-ring"></div><button class="orb" aria-label="切换语音演示"><span class="mic">⌁</span></button></div>
+        <div class="demo-copy"><small>INTERACTION PREVIEW</small><strong data-demo-title>点一下，体验交互状态</strong><span data-demo-subtitle>不申请麦克风 · 仅展示 UI 动效</span></div>
+        <div class="wave" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="proof">
+      <div><strong>&lt; 140 ms</strong><span>打断信号目标 p95</span></div>
+      <div><strong>100%</strong><span>语音模型留在本机</span></div>
+      <div><strong>0</strong><span>上游架构侵入</span></div>
+      <div><strong>6</strong><span>可替换 Muxiva Node Packs</span></div>
+    </section>
+
+    <section id="pipeline" class="pipeline section">
+      <div class="section-head"><div><span>01 / PIPELINE</span><h2>实时链路，清清楚楚。</h2></div><p>它不是把几个 SDK 串在一个回调里。每段链路都有类型、有界队列、取消语义和可观测指标。</p></div>
+      <div class="flow">
+        <article class="node browser"><span>BROWSER</span><h3>DSH Web</h3><p>Mic · Session · Transcript · Speaker</p></article>
+        <div class="arrow"><b>PCM16</b><i>→</i></div>
+        <article class="node muxiva"><span>RUNTIME</span><h3>Muxiva Graph</h3><p>Frames · Backpressure · Signals · Trace</p></article>
+        <div class="arrow"><b>ASR Final</b><i>→</i></div>
+        <article class="node agent"><span>HARNESS</span><h3>DeepSeek Agent</h3><p>Sessions · Models · Tools · Permissions</p></article>
+      </div>
+      <div class="speech-stack">
+        <div><span>01</span><b>Silero VAD</b><small>speech onset / endpoint / barge-in</small></div>
+        <div><span>02</span><b>Zipformer2 CTC</b><small>Mandarin partial + committed transcript</small></div>
+        <div><span>03</span><b>Sentence Scheduler</b><small>Markdown-safe incremental speech chunks</small></div>
+        <div><span>04</span><b>Kokoro zh/en</b><small>24 kHz cancellable local synthesis</small></div>
+      </div>
+    </section>
+
+    <section class="section principles">
+      <div class="section-head"><div><span>02 / WHY MUXIVA</span><h2>顺滑不是感觉，是系统属性。</h2></div></div>
+      <div class="cards">
+        <article><span class="num">A</span><h3>真正的打断</h3><p>用户一开口，Signal 同时取消 Agent Turn、TTS generation 和浏览器播放；旧结果被 generation fence 丢弃。</p></article>
+        <article><span class="num">B</span><h3>背压优先</h3><p>音频和文本队列全部有界。慢消费者不会偷偷累积几秒延迟，再把“流式”变成排队播放。</p></article>
+        <article><span class="num">C</span><h3>Agent 可替换</h3><p>DSH 只通过公开 Session face 接入；更换模型、工具或权限策略，不需要重写语音 Pipeline。</p></article>
+      </div>
+    </section>
+
+    <section class="cta">
+      <span>OPEN SOURCE · APACHE-2.0</span><h2>把你的 DSH，变成会说话的本地 Agent。</h2>
+      <div class="actions"><button class="primary" data-copy-install>复制安装命令</button><a class="secondary" href="./docs.html">从 Quick Start 开始</a></div>
+    </section>
+  </main>
+
+  <footer><span>Muxiva Voice × DeepSeek Harness</span><span>Built for real-time interaction.</span></footer>
+  <div class="toast" role="status" aria-live="polite">安装命令已复制</div>
+  <script src="./app.js"></script>
+</body>
+</html>

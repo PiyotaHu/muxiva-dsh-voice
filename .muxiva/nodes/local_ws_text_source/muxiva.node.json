@@ -1,0 +1,5 @@
+{
+  "format":"muxiva.node/v1","package_id":"muxiva_dsh_local_ws_text_source","display_name":"DSH Agent Text Ingress","node_type":"muxiva.dsh.local_ws_text_source","language":"python","factory_version":"0.1.0","kind":"source","entrypoint":"node:LocalWsTextSource","category":"transport","capability":"local.agent_text.ingress","summary":"Turns DSH assistant sentence chunks and cancellation controls into typed Muxiva Frames and Signals.","tags":["dsh","text","barge-in"],
+  "ports":[{"name":"text_out","direction":"output","frame_type":"text","schema":{"semantics":"assistant_delta","streaming":true}},{"name":"signal_out","direction":"output","frame_type":"signal","schema":{"semantics":["graph_control","barge_in"]}},{"name":"event_out","direction":"output","frame_type":"event","schema":{"semantics":["agent_text"]}}],
+  "config_schema":{"type":"object","properties":{},"additionalProperties":false}
+}

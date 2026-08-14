@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "silero-vad",
+      "license": "MIT",
+      "target": ".models/silero_vad.onnx",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
+      "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6"
+    },
+    {
+      "id": "zipformer-small-ctc-zh-model",
+      "license": "Apache-2.0",
+      "target": ".models/asr-zh/model.onnx",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-small-ctc-zh-2025-04-01/resolve/ba19bb0740dedf47a7fc30b462ff1328cff971b4/model.onnx",
+      "sha256": "965221b3f80f253b2dbbd8f309ea5fc213cfc66ad649c8c0825d678837838e91"
+    },
+    {
+      "id": "zipformer-small-ctc-zh-tokens",
+      "license": "Apache-2.0",
+      "target": ".models/asr-zh/tokens.txt",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-small-ctc-zh-2025-04-01/resolve/ba19bb0740dedf47a7fc30b462ff1328cff971b4/tokens.txt",
+      "sha256": "6fed8c6c248516f38e7faa19404b57413e8ce259f1cbc1fa4aebc86eac32fdfd"
+    },
+    {
+      "id": "kokoro-multi-lang-v1_1",
+      "license": "Apache-2.0",
+      "target": ".models/kokoro-multi-lang-v1_1.tar.bz2",
+      "extract": ".models",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_1.tar.bz2",
+      "sha256": "a3f4c73d043860e3fd2e5b06f36795eb81de0fc8e8de6df703245edddd87dbad"
+    }
+  ]
+}
