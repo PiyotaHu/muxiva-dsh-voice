@@ -11,8 +11,9 @@ Your microphone, VAD, ASR, sentence scheduling, TTS, playback and interruption p
 ```text
 DSH Web microphone ──PCM16──▶ Muxiva Graph
                               ├─ Silero VAD ──barge-in──┐
-                              └─ Zipformer ASR ──final──┼─▶ DSH Session / Agent / Tools
-DSH assistant deltas ─────────▶ sentence buffer ─▶ speech formatter ─▶ Kokoro ─▶ browser speaker
+                              ├─ Zipformer ──preview─────┤
+                              └─ SenseVoice zh/en final─┼─▶ DSH Session / Agent / Tools
+DSH assistant deltas ─────────▶ sentence buffer ─▶ speech formatter ─▶ speech normalizer ─▶ Kokoro ─▶ browser speaker
 ```
 
 - **Muxiva owns the real-time pipeline:** typed Frames, bounded queues, backpressure, Signals, cancellation and observability.
@@ -45,7 +46,7 @@ npm start
 dsh --profile web
 ```
 
-Open the printed DSH URL, create or open a session, then select the microphone button in the composer. The button glow follows input energy; its tooltip moves through listening, hearing, thinking and speaking.
+Open the printed DSH URL, create or open a session, then select the large voice orb above the composer. Its halo follows input energy and the visible status moves through listening, hearing, thinking and speaking.
 
 ## Published release UX
 
@@ -77,7 +78,7 @@ npm test
 npm run pack:smoke
 python3 -m compileall -q python .muxiva/nodes
 
-# After setup/models: boots the real Graph and certifies TTS -> PCM -> VAD/ASR.
+# After setup/models: certifies Chinese TTS loopback and English ASR.
 npm run test:e2e
 ```
 

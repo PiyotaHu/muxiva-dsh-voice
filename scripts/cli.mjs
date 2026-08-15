@@ -30,10 +30,19 @@ async function sha256(path) {
   return hash.digest('hex')
 }
 
+async function ensureExtracted(model, target) {
+  if (!model.extract) return
+  const ready = (model.files ?? []).every(path => existsSync(resolve(root, path)))
+  if (ready) return
+  console.log(`[voice] extract ${model.id}`)
+  await run('tar', ['-xjf', target, '-C', resolve(root, model.extract)])
+}
+
 async function download(model) {
   const target = resolve(root, model.target)
   if (existsSync(target) && await sha256(target) === model.sha256) {
     console.log(`[voice] reuse ${model.id}`)
+    await ensureExtracted(model, target)
     return
   }
   await mkdir(dirname(target), { recursive: true })
@@ -43,9 +52,7 @@ async function download(model) {
   const actual = await sha256(partial)
   if (actual !== model.sha256) throw new Error(`${model.id} checksum mismatch: ${actual}`)
   await rename(partial, target)
-  if (model.extract) {
-    await run('tar', ['-xjf', target, '-C', resolve(root, model.extract)])
-  }
+  await ensureExtracted(model, target)
 }
 
 async function models() {
@@ -118,6 +125,7 @@ async function doctor(fix = false) {
   for (const model of lock.models) {
     const target = resolve(root, model.target)
     if (!existsSync(target) || await sha256(target) !== model.sha256) readyModels = false
+    if (!(model.files ?? []).every(path => existsSync(resolve(root, path)))) readyModels = false
   }
   const results = [
     report('macOS Apple Silicon', macArm, `${process.platform}/${process.arch}`),

@@ -1,0 +1,31 @@
+from __future__ import annotations
+
+import unittest
+
+from muxiva_voice_transport.speech_text import normalize_for_speech
+
+
+class SpeechTextNormalizerTest(unittest.TestCase):
+    def test_strips_markdown_urls_and_emoji(self) -> None:
+        source = "## 结果 🚀\n- **详情**见[文档](https://example.com) ✅"
+        self.assertEqual(normalize_for_speech(source), "结果详情见文档")
+
+    def test_speaks_chinese_lists_dates_decimals_and_percentages(self) -> None:
+        source = "1、2、3；2026年；版本 12.5；完成 80%。"
+        self.assertEqual(
+            normalize_for_speech(source),
+            "一、二、三；二零二六年；版本十二点五；完成百分之八十。",
+        )
+
+    def test_preserves_english_numbers_for_english_text(self) -> None:
+        self.assertEqual(normalize_for_speech("There are 3 options ✅"), "There are 3 options")
+
+    def test_replaces_fenced_code(self) -> None:
+        self.assertEqual(
+            normalize_for_speech("已完成。```python\nprint(1)\n```请查看。"),
+            "已完成。代码已经生成，请在聊天窗口查看。请查看。",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

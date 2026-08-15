@@ -21,6 +21,8 @@
     "python/muxiva_voice_transport/*.py",
     "scripts",
     "test/e2e_smoke.py",
+    "test/speech_text_test.py",
+    "benchmarks",
     "docs",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
@@ -50,7 +52,8 @@
     "muxivaVersion": "0.1.0"
   },
   "scripts": {
-    "check": "node --test && node scripts/check-package.mjs",
+    "check": "node --test && PYTHONPATH=python python3 -m unittest discover -s test -p '*_test.py' && node scripts/check-package.mjs && node scripts/check-performance-report.mjs",
+    "check:performance": "node scripts/check-performance-report.mjs",
     "test": "npm run check",
     "test:e2e": "node scripts/e2e-smoke.mjs",
     "doctor": "node scripts/cli.mjs doctor",

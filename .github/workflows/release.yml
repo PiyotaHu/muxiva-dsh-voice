@@ -13,13 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22.19.0
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Install a Trusted Publishing-capable npm CLI
+        run: npm install --global npm@11.8.0
       - run: npm test
       - run: npm run pack:smoke
       - name: Require tag/package version match
         run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
-      - run: npm publish --access public --provenance
+      - name: Require a certified performance report for this release
+        run: node scripts/check-performance-report.mjs --require-version "$(node -p 'require("./package.json").version')"
+      - run: npm publish --access public

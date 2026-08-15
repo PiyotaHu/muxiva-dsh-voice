@@ -6,6 +6,7 @@ Models are downloaded on demand and are not redistributed in the npm tarball.
 | --- | --- | --- | --- |
 | Silero VAD | sherpa-onnx `silero_vad.onnx` | MIT | Speech onset/end and barge-in |
 | Zipformer2 CTC zh | `ba19bb0…`, small streaming model | Apache-2.0 | Default Mandarin streaming ASR |
+| SenseVoiceSmall int8 | `2024-07-17`, zh/en/ja/ko/yue | FunASR model license | Accurate multilingual ASR final with automatic language detection and ITN |
 | Kokoro v1.1 zh/en | `kokoro-multi-lang-v1_1` | Apache-2.0 | Local 24 kHz Chinese/English TTS |
 | sherpa-onnx | `1.13.5` | Apache-2.0 | ONNX speech runtime |
 | websockets | `15.0.1` | BSD-3-Clause | Loopback browser transport |

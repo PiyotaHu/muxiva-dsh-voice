@@ -1,4 +1,4 @@
-"""Silero VAD + streaming Zipformer2 CTC ASR, executed inside a Muxiva Python Node."""
+"""Silero VAD + low-latency preview + multilingual final ASR."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ class SherpaVadAsr:
         self.np = None
         self.vad = None
         self.recognizer = None
+        self.final_recognizer = None
         self.stream = None
         self.vad_buffer = None
         self.vad_window_size = 512
@@ -32,8 +33,18 @@ class SherpaVadAsr:
         self.np = np
         self.sherpa = sherpa_onnx
         model_dir = Path(str(self.config.get("model_dir", ".models/asr-zh"))).resolve()
+        final_model_dir = Path(str(self.config.get(
+            "final_model_dir",
+            ".models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17",
+        ))).resolve()
         vad_model = Path(str(self.config.get("vad_model", ".models/silero_vad.onnx"))).resolve()
-        required = [model_dir / "model.onnx", model_dir / "tokens.txt", vad_model]
+        required = [
+            model_dir / "model.onnx",
+            model_dir / "tokens.txt",
+            final_model_dir / "model.int8.onnx",
+            final_model_dir / "tokens.txt",
+            vad_model,
+        ]
         missing = [str(path) for path in required if not path.is_file()]
         if missing:
             raise RuntimeError(f"voice model files are missing: {', '.join(missing)}; run `npm run models`")
@@ -50,6 +61,18 @@ class SherpaVadAsr:
             debug=False,
         )
         self.stream = self.recognizer.create_stream()
+        self.final_recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+            model=str(final_model_dir / "model.int8.onnx"),
+            tokens=str(final_model_dir / "tokens.txt"),
+            num_threads=int(self.config.get("final_num_threads", 2)),
+            sample_rate=16_000,
+            feature_dim=80,
+            decoding_method="greedy_search",
+            provider="cpu",
+            language=str(self.config.get("final_language", "auto")),
+            use_itn=bool(self.config.get("final_use_itn", True)),
+            debug=False,
+        )
 
         vad_config = sherpa_onnx.VadModelConfig()
         vad_config.silero_vad.model = str(vad_model)
@@ -86,24 +109,38 @@ class SherpaVadAsr:
                 self._event(ctx, "muxiva.voice.speech.started", {"active": True, "detector": "silero"}, frame.sequence)
                 ctx.emit_signal("muxiva.voice.speech.started", {"node": "muxiva.sherpa_vad_asr", "detector": "silero"})
             while not self.vad.empty():
+                segment = self.vad.front
+                # `front` is backed by the VAD queue; copy before `pop`
+                # invalidates that native storage.
+                utterance = self.np.array(segment.samples, dtype=self.np.float32, copy=True)
                 self.vad.pop()
-                self._commit(ctx, frame.sequence)
+                self._commit(ctx, frame.sequence, utterance)
         if self.vad_offset > window * 20:
             self.vad_buffer = self.vad_buffer[self.vad_offset - window * 4:]
             self.vad_offset = window * 4
 
-    def _commit(self, ctx, sequence: int) -> None:
+    def _commit(self, ctx, sequence: int, utterance) -> None:
         if not self.speaking:
             return
         self.speaking = False
         self.stream.input_finished()
         while self.recognizer.is_ready(self.stream):
             self.recognizer.decode_stream(self.stream)
-        text = self.recognizer.get_result(self.stream).strip()
+        preview_text = self.recognizer.get_result(self.stream).strip()
+        text = preview_text
+        if len(utterance) > 0:
+            final_stream = self.final_recognizer.create_stream()
+            final_stream.accept_waveform(16_000, utterance)
+            self.final_recognizer.decode_stream(final_stream)
+            text = final_stream.result.text.strip() or preview_text
         self._event(ctx, "muxiva.voice.speech.stopped", {"active": False, "detector": "silero"}, sequence)
         if text:
             ctx.emit("text_out", muxiva.TextFrame(text, sequence=sequence))
-            self._event(ctx, "muxiva.voice.transcript.completed", {"text": text}, sequence)
+            self._event(ctx, "muxiva.voice.transcript.completed", {
+                "text": text,
+                "recognizer": "sensevoice",
+                "language": str(self.config.get("final_language", "auto")),
+            }, sequence)
         self.stream = self.recognizer.create_stream()
         self.last_partial = ""
 

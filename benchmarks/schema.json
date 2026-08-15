@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://muxiva.github.io/muxiva-dsh-voice/benchmarks/schema.json",
+  "title": "Muxiva DSH Voice certified performance report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "release", "generatedAt", "system", "versions", "modelLockSha256", "workload", "latencyMs", "throughput", "resources", "quality", "stability"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "release": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machine", "chip", "memoryGb", "os", "powerSource"],
+      "properties": {
+        "machine": { "type": "string", "minLength": 1 },
+        "chip": { "type": "string", "minLength": 1 },
+        "memoryGb": { "type": "number", "exclusiveMinimum": 0 },
+        "os": { "type": "string", "minLength": 1 },
+        "powerSource": { "enum": ["ac", "battery"] }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["muxiva", "dshVoice", "deepseekHarness", "node", "python"],
+      "properties": {
+        "muxiva": { "type": "string", "minLength": 1 },
+        "dshVoice": { "type": "string", "minLength": 1 },
+        "deepseekHarness": { "type": "string", "minLength": 1 },
+        "node": { "type": "string", "minLength": 1 },
+        "python": { "type": "string", "minLength": 1 }
+      }
+    },
+    "modelLockSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turns", "interruptions", "idleMinutes", "soakMinutes", "warmupTurns"],
+      "properties": {
+        "turns": { "type": "integer", "minimum": 100 },
+        "interruptions": { "type": "integer", "minimum": 30 },
+        "idleMinutes": { "type": "number", "minimum": 5 },
+        "soakMinutes": { "type": "number", "minimum": 30 },
+        "warmupTurns": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "latencyMs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["browserCaptureToMuxivaFrame", "speechOnsetToBargeIn", "speechEndToAsrFinal", "firstAgentTextToFirstTtsPcm", "audioQueueAhead", "staleAudioAfterBargeIn"],
+      "properties": {
+        "browserCaptureToMuxivaFrame": { "$ref": "#/$defs/distribution" },
+        "speechOnsetToBargeIn": { "$ref": "#/$defs/distribution" },
+        "speechEndToAsrFinal": { "$ref": "#/$defs/distribution" },
+        "firstAgentTextToFirstTtsPcm": { "$ref": "#/$defs/distribution" },
+        "audioQueueAhead": { "$ref": "#/$defs/distribution" },
+        "staleAudioAfterBargeIn": { "$ref": "#/$defs/distribution" }
+      }
+    },
+    "throughput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asrFinalRealtimeFactor", "ttsRealtimeFactor"],
+      "properties": {
+        "asrFinalRealtimeFactor": { "$ref": "#/$defs/distribution" },
+        "ttsRealtimeFactor": { "$ref": "#/$defs/distribution" }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coldStartMs", "warmStartMs", "idleCpuPercent", "activeCpuPercent", "peakRssMb", "modelDiskMb"],
+      "properties": {
+        "coldStartMs": { "type": "number", "minimum": 0 },
+        "warmStartMs": { "type": "number", "minimum": 0 },
+        "idleCpuPercent": { "type": "number", "minimum": 0 },
+        "activeCpuPercent": { "type": "number", "minimum": 0 },
+        "peakRssMb": { "type": "number", "minimum": 0 },
+        "modelDiskMb": { "type": "number", "minimum": 0 }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mandarinCer", "englishWer", "ttsUnderruns"],
+      "properties": {
+        "mandarinCer": { "type": "number", "minimum": 0 },
+        "englishWer": { "type": "number", "minimum": 0 },
+        "ttsUnderruns": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completedTurns", "failedTurns", "droppedAudioFrames", "lateResultsDiscarded", "unboundedQueues"],
+      "properties": {
+        "completedTurns": { "type": "integer", "minimum": 100 },
+        "failedTurns": { "type": "integer", "minimum": 0 },
+        "droppedAudioFrames": { "type": "integer", "minimum": 0 },
+        "lateResultsDiscarded": { "type": "integer", "minimum": 0 },
+        "unboundedQueues": { "const": 0 }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["samples", "p50", "p95", "p99"],
+      "properties": {
+        "samples": { "type": "integer", "minimum": 1 },
+        "p50": { "type": "number", "minimum": 0 },
+        "p95": { "type": "number", "minimum": 0 },
+        "p99": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

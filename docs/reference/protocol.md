@@ -21,7 +21,7 @@ Server controls:
 | `server.ready` | Graph transport is ready. |
 | `speech.started` / `speech.stopped` | Silero VAD boundary. |
 | `asr.partial` / `asr.final` | Preview-only text / Agent-admitted text. |
-| `tts.started` / `tts.stopped` | Playback state. |
+| `tts.started` / `tts.stopped` | Synthesis state; the browser drains scheduled PCM before returning to listening. |
 | `pipeline.metrics` | Bounded latency and queue gauges. |
 | `pipeline.error` | User-actionable local failure. |
 

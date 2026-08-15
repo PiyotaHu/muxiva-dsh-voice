@@ -33,10 +33,10 @@
     </section>
 
     <section class="proof">
-      <div><strong>&lt; 140 ms</strong><span>打断信号目标 p95</span></div>
+      <div><strong>p95 ≤ 140 ms</strong><span>Release Gate · 非实测值</span></div>
       <div><strong>100%</strong><span>语音模型留在本机</span></div>
       <div><strong>0</strong><span>上游架构侵入</span></div>
-      <div><strong>6</strong><span>可替换 Muxiva Node Packs</span></div>
+      <div><strong>7</strong><span>可替换 Muxiva Node Packs</span></div>
     </section>
 
     <section id="pipeline" class="pipeline section">
@@ -50,9 +50,10 @@
       </div>
       <div class="speech-stack">
         <div><span>01</span><b>Silero VAD</b><small>speech onset / endpoint / barge-in</small></div>
-        <div><span>02</span><b>Zipformer2 CTC</b><small>Mandarin partial + committed transcript</small></div>
-        <div><span>03</span><b>Sentence Scheduler</b><small>Markdown-safe incremental speech chunks</small></div>
-        <div><span>04</span><b>Kokoro zh/en</b><small>24 kHz cancellable local synthesis</small></div>
+        <div><span>02</span><b>Zipformer Preview</b><small>low-latency Mandarin partial</small></div>
+        <div><span>03</span><b>SenseVoice Final</b><small>accurate Chinese + English auto detect</small></div>
+        <div><span>04</span><b>Speech Normalizer</b><small>Markdown · emoji · Chinese numbers</small></div>
+        <div><span>05</span><b>Kokoro zh/en</b><small>24 kHz cancellable local synthesis</small></div>
       </div>
     </section>
 

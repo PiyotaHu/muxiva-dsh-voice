@@ -27,7 +27,7 @@ npm start
 dsh --profile web
 ```
 
-进入 DSH 会话后点击输入框左侧麦克风。紫色光环显示输入能量，状态会依次显示“聆听 / 识别 / 思考 / 播放”；说话打断时，Muxiva Signal 会立即清掉旧播放和 TTS，浏览器同时取消旧 DSH Turn。
+进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”；说话打断时，Muxiva Signal 会立即清掉旧播放和 TTS，浏览器同时取消旧 DSH Turn。
 
 ## 边界
 
@@ -38,4 +38,8 @@ dsh --profile web
 
 模型下载采用固定版本和 SHA-256 校验；npm 包本身不重新分发模型。完整说明见 [模型和许可证](THIRD_PARTY_NOTICES.md)、[协议](docs/reference/protocol.md)和[安全模型](docs/reference/security.md)。
 
-模型安装完成后，可以运行 `npm run test:e2e`。它会启动真实 Muxiva Graph，执行“中文文本 → Kokoro PCM → 模拟麦克风 → Silero VAD → Zipformer ASR”的本地闭环认证。
+模型安装完成后，可以运行 `npm run test:e2e`。它会启动真实的 8-Node Muxiva Graph，认证“中文文本 → normalizer → Kokoro PCM → 模拟麦克风 → Silero VAD → SenseVoice Final”的闭环，并另外验证英文识别。
+
+第一台性能认证机器是 16 GB MacBook Pro M1 Pro。延迟目标、严格的测量边界和每个
+Release 必须提交的版本化实测报告格式见[性能与验收](docs/guide/performance.md)。目标值
+不会冒充实测值；缺少对应性能报告及文档链接时，npm Release Workflow 会直接失败。
