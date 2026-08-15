@@ -36,17 +36,21 @@
       "sha256": "7d1efa2138a65b0b488df37f8b89e3d91a60676e416f515b952358d83dfd347e"
     },
     {
-      "id": "kokoro-multi-lang-v1_1",
+      "id": "qwen3-tts-12hz-0.6b-customvoice-8bit",
+      "source": "huggingface",
       "license": "Apache-2.0",
-      "target": ".models/kokoro-multi-lang-v1_1.tar.bz2",
-      "extract": ".models",
+      "repo_id": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
+      "revision": "049ef77fe8816b536193c0c25f9a214d17921282",
+      "target": ".models/qwen3-tts-12hz-0.6b-customvoice-8bit",
       "files": [
-        ".models/kokoro-multi-lang-v1_1/model.onnx",
-        ".models/kokoro-multi-lang-v1_1/voices.bin",
-        ".models/kokoro-multi-lang-v1_1/tokens.txt"
+        ".models/qwen3-tts-12hz-0.6b-customvoice-8bit/config.json",
+        ".models/qwen3-tts-12hz-0.6b-customvoice-8bit/model.safetensors",
+        ".models/qwen3-tts-12hz-0.6b-customvoice-8bit/speech_tokenizer/model.safetensors"
       ],
-      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_1.tar.bz2",
-      "sha256": "a3f4c73d043860e3fd2e5b06f36795eb81de0fc8e8de6df703245edddd87dbad"
+      "sha256": {
+        "model.safetensors": "3bcb2c4a127e6243e81a30b7126c7865f686d3559de4f938e5d3b150c6a9560d",
+        "speech_tokenizer/model.safetensors": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+      }
     }
   ]
 }

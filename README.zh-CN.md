@@ -27,6 +27,11 @@ npm start
 dsh --profile web
 ```
 
+`npm start` 默认是低开销的无界面产品模式，也可以显式运行 `npm run start:headless`。
+排障或调优时，把终端 A 换成 `npm run observe`：它会在继续托管认证语音桥的同时打开
+同一个 `graph.json` 的 Muxiva Studio。点击 **Run**，再打开 **◎ Observe**，即可查看各
+Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Trace 和热点判断。
+
 进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”；说话打断时，Muxiva Signal 会立即清掉旧播放和 TTS，浏览器同时取消旧 DSH Turn。
 
 ## 边界
@@ -36,9 +41,9 @@ dsh --profile web
 - 本仓库只管桥：DSH Bundle、Web 控件、版本化本地协议和项目 Node Pack。
 - 当前没有修改 Muxiva 或 DSH 上游仓库。
 
-模型下载采用固定版本和 SHA-256 校验；npm 包本身不重新分发模型。完整说明见 [模型和许可证](THIRD_PARTY_NOTICES.md)、[协议](docs/reference/protocol.md)和[安全模型](docs/reference/security.md)。
+模型下载采用固定 revision，并对 Qwen3-TTS 主权重和语音 tokenizer 执行 SHA-256 校验；npm 包本身不重新分发模型。完整说明见 [模型和许可证](THIRD_PARTY_NOTICES.md)、[协议](docs/reference/protocol.md)和[安全模型](docs/reference/security.md)。
 
-模型安装完成后，可以运行 `npm run test:e2e`。它会启动真实的 8-Node Muxiva Graph，认证“中文文本 → normalizer → Kokoro PCM → 模拟麦克风 → Silero VAD → SenseVoice Final”的闭环，并另外验证英文识别。
+模型安装完成后，可以运行 `npm run test:e2e`。它会启动真实的 8-Node Muxiva Graph，认证“中文文本 → normalizer → Qwen3-TTS 24 kHz PCM → 模拟麦克风 → Silero VAD → SenseVoice Final”的闭环，并另外验证英文识别。默认 TTS 是在 Apple Silicon 上通过 MLX 运行的 Qwen3-TTS 0.6B CustomVoice 8-bit，不包含云端 fallback。
 
 第一台性能认证机器是 16 GB MacBook Pro M1 Pro。延迟目标、严格的测量边界和每个
 Release 必须提交的版本化实测报告格式见[性能与验收](docs/guide/performance.md)。目标值

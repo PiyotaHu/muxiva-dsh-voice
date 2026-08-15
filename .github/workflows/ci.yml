@@ -33,7 +33,7 @@ jobs:
       - name: Validate model lock shape
         run: |
           jq -e '.version == 1 and (.models | length == 5)' models.lock.json
-          jq -e 'all(.models[]; (.sha256 | test("^[0-9a-f]{64}$")) and (.url | startswith("https://")))' models.lock.json
+          jq -e 'all(.models[]; if .source == "huggingface" then (.repo_id | length > 0) and (.revision | test("^[0-9a-f]{40}$")) and (.sha256 | type == "object") and all(.sha256[]; test("^[0-9a-f]{64}$")) else (.sha256 | test("^[0-9a-f]{64}$")) and (.url | startswith("https://")) end)' models.lock.json
 
   browser-artifact:
     runs-on: ubuntu-latest

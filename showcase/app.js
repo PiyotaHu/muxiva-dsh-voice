@@ -26,7 +26,7 @@ const states = [
   ['listening', '正在聆听', '麦克风音频进入 Muxiva 有界队列'],
   ['hearing', '我听见了', 'Silero VAD · Zipformer ASR partial'],
   ['thinking', 'Agent 思考中', 'DSH Session · Model · Tools'],
-  ['speaking', '正在回答', 'Kokoro 24 kHz · 随时可以打断'],
+  ['speaking', '正在回答', 'Qwen3-TTS · MLX · 24 kHz · 随时可以打断'],
 ]
 let state = -1
 let timer

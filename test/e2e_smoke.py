@@ -25,7 +25,7 @@ def main() -> None:
         tts_events: list[str] = []
         synthesis_done = False
         while not synthesis_done:
-            message = websocket.recv(timeout=15)
+            message = websocket.recv(timeout=45)
             if isinstance(message, bytes):
                 tts_chunks.append(message)
                 continue
@@ -55,25 +55,14 @@ def main() -> None:
         ))
         send_microphone(websocket, microphone)
 
-        voice_events: list[dict] = []
-        deadline = time.monotonic() + 20
-        while time.monotonic() < deadline:
-            try:
-                message = websocket.recv(timeout=2)
-            except TimeoutError:
-                continue
-            if isinstance(message, str):
-                event = json.loads(message)
-                voice_events.append(event)
-                if event["type"] == "asr.final":
-                    break
+        voice_events = receive_turn(websocket)
 
         kinds = [item["type"] for item in voice_events]
         assert tts_events == ["tts.started", "tts.stopped"], tts_events
         assert sum(map(len, tts_chunks)) > 4_800, "TTS returned no useful PCM"
         assert "speech.started" in kinds, kinds
         assert "asr.final" in kinds, kinds
-        chinese_final = next(item["text"] for item in voice_events if item["type"] == "asr.final")
+        chinese_final = "".join(item["text"] for item in voice_events if item["type"] == "asr.final")
         assert "语音助手" in chinese_final, chinese_final
 
         model = Path(".models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17")
@@ -83,8 +72,8 @@ def main() -> None:
         send_microphone(websocket, np.concatenate((
             np.zeros(4_800, dtype=np.int16), english, np.zeros(24_000, dtype=np.int16),
         )))
-        english_events = receive_until_final(websocket)
-        english_final = next(item["text"] for item in english_events if item["type"] == "asr.final")
+        english_events = receive_turn(websocket)
+        english_final = " ".join(item["text"] for item in english_events if item["type"] == "asr.final")
         assert "tribal chieftain" in english_final.lower(), english_final
         print(json.dumps({
             "ttsPcmBytes": sum(map(len, tts_chunks)),
@@ -100,19 +89,24 @@ def send_microphone(websocket, samples: np.ndarray) -> None:
         time.sleep(0.018)
 
 
-def receive_until_final(websocket) -> list[dict]:
+def receive_turn(websocket) -> list[dict]:
     events: list[dict] = []
     deadline = time.monotonic() + 20
+    quiet_deadline = None
     while time.monotonic() < deadline:
         try:
-            message = websocket.recv(timeout=2)
+            message = websocket.recv(timeout=0.5)
         except TimeoutError:
+            if quiet_deadline is not None and time.monotonic() >= quiet_deadline:
+                return events
             continue
         if isinstance(message, str):
             event = json.loads(message)
             events.append(event)
             if event["type"] == "asr.final":
-                return events
+                # Qwen3-TTS may insert natural pauses which create multiple VAD
+                # segments. Treat all finals in the same quiet window as one turn.
+                quiet_deadline = time.monotonic() + 1.0
     raise AssertionError(events)
 
 

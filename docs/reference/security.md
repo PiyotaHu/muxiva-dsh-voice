@@ -2,7 +2,7 @@
 
 ## Trust boundaries
 
-The DSH page may access the microphone only after a user gesture and browser permission. Audio crosses one loopback WebSocket into Muxiva. Model files execute through ONNX Runtime in the project Python Host. DSH receives committed text, not raw audio.
+The DSH page may access the microphone only after a user gesture and browser permission. Audio crosses one loopback WebSocket into Muxiva. VAD/ASR model files execute through ONNX Runtime and Qwen3-TTS executes through Apple MLX in isolated project Python Hosts. DSH receives committed text, not raw audio.
 
 ## Defaults
 
@@ -13,7 +13,7 @@ The DSH page may access the microphone only after a user gesture and browser per
 - 32 KiB maximum microphone chunk;
 - bounded ingress, text and egress queues;
 - no telemetry and no cloud fallback;
-- immutable model revision plus SHA-256;
+- immutable model revisions plus SHA-256 verification of executable weights;
 - no install-time npm scripts;
 - project-local Python venv.
 

@@ -21,6 +21,7 @@
     "python/muxiva_voice_transport/*.py",
     "scripts",
     "test/e2e_smoke.py",
+    "test/qwen3_tts_test.py",
     "test/speech_text_test.py",
     "benchmarks",
     "docs",
@@ -59,6 +60,8 @@
     "doctor": "node scripts/cli.mjs doctor",
     "models": "node scripts/cli.mjs models",
     "start": "node scripts/cli.mjs start",
+    "start:headless": "node scripts/cli.mjs start --no-observe",
+    "observe": "node scripts/cli.mjs start --observe",
     "pack:smoke": "node scripts/pack-smoke.mjs"
   },
   "keywords": [

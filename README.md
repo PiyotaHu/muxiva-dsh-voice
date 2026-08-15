@@ -13,7 +13,7 @@ DSH Web microphone ──PCM16──▶ Muxiva Graph
                               ├─ Silero VAD ──barge-in──┐
                               ├─ Zipformer ──preview─────┤
                               └─ SenseVoice zh/en final─┼─▶ DSH Session / Agent / Tools
-DSH assistant deltas ─────────▶ sentence buffer ─▶ speech formatter ─▶ speech normalizer ─▶ Kokoro ─▶ browser speaker
+DSH assistant deltas ─────────▶ sentence buffer ─▶ speech formatter ─▶ speech normalizer ─▶ Qwen3-TTS / MLX ─▶ browser speaker
 ```
 
 - **Muxiva owns the real-time pipeline:** typed Frames, bounded queues, backpressure, Signals, cancellation and observability.
@@ -28,7 +28,7 @@ Prerequisites: macOS arm64, Node.js 22.19+, Python 3.11–3.13, Rust, Muxiva sou
 git clone https://github.com/PiyotaHu/muxiva-dsh-voice.git
 cd muxiva-dsh-voice
 
-# Build the project Python environment and fetch SHA-256 pinned models.
+# Build the project Python environment and fetch revision- and SHA-256-pinned models.
 npm run doctor -- --fix
 npm run models
 
@@ -36,7 +36,7 @@ npm run models
 dsh plugin --profile web add .
 ```
 
-Start the two supervised processes:
+Start the two supervised processes. Headless mode is the normal low-overhead product path:
 
 ```bash
 # Terminal A
@@ -45,6 +45,12 @@ npm start
 # Terminal B
 dsh --profile web
 ```
+
+For local diagnosis, replace `npm start` with `npm run observe`. It opens the same
+`graph.json` in Muxiva Studio while keeping the authenticated DSH loopback bridge supervised.
+Select **Run**, then open **◎ Observe** for live per-Node latency and throughput, per-Edge queue
+age and rates, Node-owned buffers, traces and hotspot verdicts. `npm run start:headless` is the
+explicit non-Studio form; `npm start` remains headless by default.
 
 Open the printed DSH URL, create or open a session, then select the large voice orb above the composer. Its halo follows input energy and the visible status moves through listening, hearing, thinking and speaking.
 
@@ -63,7 +69,7 @@ The package is a native DSH Bundle (`dsh.bundle`) and a dual-face Web plugin (`d
 ## Security posture
 
 - The speech bridge binds only to loopback and accepts one active client.
-- Model artifacts are pinned by immutable revision/URL and SHA-256.
+- Model artifacts are pinned by immutable revision/URL; the Qwen3-TTS weights and tokenizer are SHA-256 verified.
 - No API key, microphone recording or transcript is uploaded by this plugin.
 - Browser echo cancellation, noise suppression and automatic gain control are requested.
 - Queue capacities are finite; stale TTS and Agent output are fenced after barge-in.
@@ -78,7 +84,7 @@ npm test
 npm run pack:smoke
 python3 -m compileall -q python .muxiva/nodes
 
-# After setup/models: certifies Chinese TTS loopback and English ASR.
+# After setup/models: certifies Qwen3-TTS Chinese loopback and English ASR.
 npm run test:e2e
 ```
 

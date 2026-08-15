@@ -2,3 +2,9 @@
 numpy==2.2.6
 sherpa-onnx==1.13.5
 websockets==15.0.1
+mlx-audio[tts]==0.4.8
+# Pin the Metal stack used by the M1 Pro certification run. This release also
+# publishes CPython 3.13 Apple Silicon wheels for the macOS 14 support floor.
+mlx==0.31.2
+mlx-lm==0.31.3
+transformers==5.14.0

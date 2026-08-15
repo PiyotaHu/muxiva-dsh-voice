@@ -14,7 +14,7 @@ Every row must pass. `doctor --fix` creates only this project's `.muxiva/venv`; 
 npx @muxiva/dsh-voice setup
 ```
 
-The downloader verifies every artifact before activation. An interrupted `curl` transfer resumes from its `.partial` file. The default download is about 590 MB; extracted models use about 1.2 GB plus the Python environment.
+The downloader verifies every artifact before activation. An interrupted `curl` transfer resumes from its `.partial` file, while the Qwen3-TTS snapshot resumes through the Hugging Face cache. The default download is about 2.5 GB; local model files use about 2.3 GiB and the isolated Python environment about 700 MiB on the M1 Pro certification machine.
 
 ## 3. Install the DSH Bundle
 
@@ -28,6 +28,12 @@ The dump must contain a `# == @muxiva/dsh-voice` layer and the `muxiva-dsh-voice
 ## 4. Run and speak
 
 Start `muxiva-dsh-voice start`, start `dsh --profile web`, open a session, and select the large voice orb above the composer. Use headphones for the cleanest full-duplex certification run.
+
+The default is a low-overhead headless Runtime. For an observable development run, use
+`muxiva-dsh-voice start --observe` (or `npm run observe` from a checkout), select **Run** in
+the opened Studio, then open **◎ Observe**. Studio reports per-Node process latency and
+throughput, per-Edge rates and queue age, Node-owned buffers, traces and hotspot verdicts.
+Use `--no-observe` or `npm run start:headless` when Studio should stay off.
 
 Before opening DSH, you can certify the complete local model path without a cloud model or microphone:
 
@@ -44,7 +50,10 @@ Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 - `vad_threshold`: lower hears quieter speech; `0.5` is the default.
 - `min_silence_seconds`: lower commits faster but may split sentences; `0.45` is the default.
 - `final_language`: `auto` detects Chinese or English; pin `zh` or `en` only for a language-specific deployment.
-- `speaker_id`: `3–57` are Chinese female voices and `58–102` Chinese male voices in Kokoro v1.1.
-- `speaker_id: 21` (`zf_032`) and `speed: 0.95` are the conversational defaults.
+- `speaker`: `Vivian` is the default Mandarin voice. Other bundled voices are `Serena`, `Uncle_Fu`, `Dylan`, `Eric`, `Ryan`, `Aiden`, `Ono_Anna`, and `Sohee`.
+- `language`: keep `Auto` for mixed Chinese and English; use `Chinese` or `English` only for a language-specific deployment.
+- `instruct`: controls speaking style. The default asks for a natural, warm and clear conversational delivery.
+- `streaming_interval`: `0.32` seconds balances first-audio latency and MLX overhead on the M1 Pro certification target.
+- `pcm_chunk_ms`: emits 40 ms PCM16 chunks to the browser scheduler after each model chunk arrives.
 
 `muxiva.speech_text_normalizer` is a project Node Pack between the built-in streaming Markdown formatter and TTS. It removes emoji and residual display syntax, preserves link labels, and speaks Chinese years, integers, decimals and percentages deterministically. It uses the public Node Pack mechanism and requires no Muxiva Runtime change.

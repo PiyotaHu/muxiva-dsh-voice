@@ -38,7 +38,47 @@ async function ensureExtracted(model, target) {
   await run('tar', ['-xjf', target, '-C', resolve(root, model.extract)])
 }
 
+async function verifyModel(model) {
+  if (model.source === 'huggingface') {
+    const modelRoot = resolve(root, model.target)
+    if (!(model.files ?? []).every(path => existsSync(resolve(root, path)))) return false
+    for (const [relative, expected] of Object.entries(model.sha256 ?? {})) {
+      const path = resolve(modelRoot, relative)
+      if (!existsSync(path) || await sha256(path) !== expected) return false
+    }
+    return true
+  }
+  const target = resolve(root, model.target)
+  if (!existsSync(target) || await sha256(target) !== model.sha256) return false
+  return (model.files ?? []).every(path => existsSync(resolve(root, path)))
+}
+
+async function downloadHuggingFace(model) {
+  if (await verifyModel(model)) {
+    console.log(`[voice] reuse ${model.id}`)
+    return
+  }
+  const target = resolve(root, model.target)
+  await mkdir(target, { recursive: true })
+  console.log(`[voice] download ${model.id} from pinned Hugging Face revision`)
+  const script = [
+    'import os',
+    'from huggingface_hub import snapshot_download',
+    'snapshot_download(repo_id=os.environ["MUXIVA_HF_REPO"], revision=os.environ["MUXIVA_HF_REVISION"], local_dir=os.environ["MUXIVA_HF_TARGET"])',
+  ].join(';')
+  await run(pythonPath(), ['-c', script], {
+    env: {
+      ...process.env,
+      MUXIVA_HF_REPO: model.repo_id,
+      MUXIVA_HF_REVISION: model.revision,
+      MUXIVA_HF_TARGET: target,
+    },
+  })
+  if (!await verifyModel(model)) throw new Error(`${model.id} checksum mismatch after download`)
+}
+
 async function download(model) {
+  if (model.source === 'huggingface') return downloadHuggingFace(model)
   const target = resolve(root, model.target)
   if (existsSync(target) && await sha256(target) === model.sha256) {
     console.log(`[voice] reuse ${model.id}`)
@@ -115,7 +155,7 @@ async function doctor(fix = false) {
   const muxivaResult = spawnSync('muxiva', ['--version'], { encoding: 'utf8' })
   const muxiva = muxivaResult.status === 0 && muxivaResult.stdout.trim() === `muxiva ${muxivaVersion}`
   const python = existsSync(pythonPath()) && supportedPython(pythonPath())
-  const imports = python && spawnSync(pythonPath(), ['-c', `import importlib.metadata; import muxiva,numpy,sherpa_onnx,websockets,muxiva_voice_transport; assert importlib.metadata.version("muxiva") == "${muxivaVersion}"`], {
+  const imports = python && spawnSync(pythonPath(), ['-c', `import importlib.metadata; import muxiva,numpy,sherpa_onnx,websockets,mlx_audio,muxiva_voice_transport; assert importlib.metadata.version("muxiva") == "${muxivaVersion}"; assert importlib.metadata.version("mlx-audio") == "0.4.8"; assert importlib.metadata.version("mlx") == "0.31.2"; assert importlib.metadata.version("transformers") == "5.14.0"`], {
     cwd: root,
     env: { ...process.env, PYTHONPATH: resolve(root, 'python') },
     stdio: 'ignore',
@@ -123,9 +163,7 @@ async function doctor(fix = false) {
   const lock = JSON.parse(await readFile(resolve(root, 'models.lock.json'), 'utf8'))
   let readyModels = true
   for (const model of lock.models) {
-    const target = resolve(root, model.target)
-    if (!existsSync(target) || await sha256(target) !== model.sha256) readyModels = false
-    if (!(model.files ?? []).every(path => existsSync(resolve(root, path)))) readyModels = false
+    if (!await verifyModel(model)) readyModels = false
   }
   const results = [
     report('macOS Apple Silicon', macArm, `${process.platform}/${process.arch}`),
@@ -137,7 +175,17 @@ async function doctor(fix = false) {
   process.exitCode = results.every(Boolean) ? 0 : 1
 }
 
-async function start() {
+function observeMode(argv) {
+  const flags = argv.slice(1)
+  const unknown = flags.filter(flag => flag !== '--observe' && flag !== '--no-observe')
+  if (unknown.length) throw new Error(`unknown start option: ${unknown[0]}`)
+  if (flags.includes('--observe') && flags.includes('--no-observe')) {
+    throw new Error('start accepts only one of --observe or --no-observe')
+  }
+  return flags.includes('--observe')
+}
+
+async function start(observe = false) {
   await doctor(false)
   if (process.exitCode) throw new Error('doctor failed; resolve the checks above before start')
   const token = randomBytes(32).toString('hex')
@@ -147,7 +195,8 @@ async function start() {
     MUXIVA_DSH_BRIDGE_TOKEN: token,
     PYTHONPATH: [resolve(root, 'python'), process.env.PYTHONPATH].filter(Boolean).join(':'),
   }
-  console.log('[voice] starting supervised loopback bridge and Muxiva graph')
+  console.log(`[voice] starting supervised loopback bridge and Muxiva ${observe ? 'Studio' : 'headless Runtime'}`)
+  if (observe) console.log('[voice] in Studio, select Run and then open ◎ Observe for live Node and Edge telemetry')
   const detached = process.platform !== 'win32'
   const bridge = spawn(pythonPath(), ['-m', 'muxiva_voice_transport.server'], {
     cwd: root, env, stdio: 'inherit', detached,
@@ -157,7 +206,10 @@ async function start() {
     bridge.once('error', (error) => { clearTimeout(timer); reject(error) })
     bridge.once('exit', (code) => { clearTimeout(timer); reject(new Error(`voice bridge exited during startup with ${code}`)) })
   })
-  const runtime = spawn('muxiva', ['serve', resolve(root, 'graph.json'), '--host', '127.0.0.1', '--port', '8080'], {
+  const muxivaArgs = observe
+    ? ['studio', resolve(root, 'graph.json'), '--host', '127.0.0.1']
+    : ['serve', resolve(root, 'graph.json'), '--host', '127.0.0.1', '--port', '8080']
+  const runtime = spawn('muxiva', muxivaArgs, {
     cwd: root, env, stdio: 'inherit', detached,
   })
   let stopping = false
@@ -182,7 +234,9 @@ function help() {
   doctor [--fix]  verify Apple Silicon, Muxiva, Python and models
   models          download and SHA-256 verify the pinned local models
   setup           install Python dependencies, build the Muxiva Python binding, and download models
-  start           run the local Muxiva voice Graph
+  start [--no-observe]
+                  run the local voice Graph headlessly (default)
+  start --observe open Muxiva Studio for Run/Stop, live Nodes, Edges and traces
 
 Install the DSH surface separately:
   dsh plugin --profile web add @muxiva/dsh-voice`)
@@ -192,7 +246,7 @@ try {
   if (command === 'models') await models()
   else if (command === 'doctor') await doctor(args.includes('--fix'))
   else if (command === 'setup') { await doctor(true); await models(); await doctor(false) }
-  else if (command === 'start') await start()
+  else if (command === 'start') await start(observeMode(args))
   else if (command === 'help' || command === '--help' || command === '-h') help()
   else throw new Error(`unknown command: ${command}`)
 } catch (error) {
