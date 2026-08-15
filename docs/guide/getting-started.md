@@ -34,6 +34,12 @@ The default is a low-overhead headless Runtime. For an observable development ru
 the opened Studio, then open **◎ Observe**. Studio reports per-Node process latency and
 throughput, per-Edge rates and queue age, Node-owned buffers, traces and hotspot verdicts.
 Use `--no-observe` or `npm run start:headless` when Studio should stay off.
+Both modes persist supervisor, bridge, Runtime and Node Host output in
+`.muxiva/runtime.log`; use `tail -f .muxiva/runtime.log` for unattended diagnosis.
+
+After connection, selecting the large orb toggles microphone mute/unmute while keeping the
+AudioWorklet, WebSocket and Graph alive. Use the small **End** button only when you want to
+tear down the local voice session.
 
 Before opening DSH, you can certify the complete local model path without a cloud model or microphone:
 
@@ -47,8 +53,10 @@ The test synthesizes a Chinese sentence, routes all resulting browser PCM back a
 
 Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 
-- `vad_threshold`: lower hears quieter speech; `0.5` is the default.
-- `min_silence_seconds`: lower commits faster but may split sentences; `0.45` is the default.
+- `vad_threshold`: lower hears quieter speech; the false-trigger-resistant default is `0.60`.
+- `min_speech_seconds`: candidates shorter than this are rejected; `0.25` is the default.
+- `min_silence_seconds`: lower commits faster but may split sentences; `0.40` is the default.
+- `barge_in_min_chars`: number of non-space preview characters required to confirm interruption; `1` is the default. VAD alone never cancels playback or the Agent turn.
 - `final_language`: `auto` detects Chinese or English; pin `zh` or `en` only for a language-specific deployment.
 - `speaker`: `Vivian` is the default Mandarin voice. Other bundled voices are `Serena`, `Uncle_Fu`, `Dylan`, `Eric`, `Ryan`, `Aiden`, `Ono_Anna`, and `Sohee`.
 - `language`: keep `Auto` for mixed Chinese and English; use `Chinese` or `English` only for a language-specific deployment.

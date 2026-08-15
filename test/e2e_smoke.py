@@ -63,6 +63,7 @@ def main() -> None:
         assert tts_events == ["tts.started", "tts.stopped"], tts_events
         assert sum(map(len, tts_chunks)) > 4_800, "TTS returned no useful PCM"
         assert "speech.started" in kinds, kinds
+        assert "barge.in" in kinds, kinds
         assert "asr.final" in kinds, kinds
         chinese_final = "".join(item["text"] for item in voice_events if item["type"] == "asr.final")
         assert "语音助手" in chinese_final, chinese_final

@@ -26,6 +26,7 @@ class LocalWsAudioSource:
                 continue
             self.sequence += 1
             ctx.emit("audio_out", self._audio_frame(pcm, 16000, self.sequence))
+            ctx.increment_counter("ingress.audio_frames")
             emitted += 1
         ctx.schedule_next_tick(10)
 

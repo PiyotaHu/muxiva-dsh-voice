@@ -8,8 +8,10 @@ class LocalWsEventSink:
     TOPIC_MAP = {
         "muxiva.voice.speech.started": "speech.started",
         "muxiva.voice.speech.stopped": "speech.stopped",
+        "muxiva.voice.barge_in.confirmed": "barge.in",
         "muxiva.voice.transcript.preview": "asr.partial",
         "muxiva.voice.transcript.completed": "asr.final",
+        "muxiva.voice.transcript.rejected": "asr.rejected",
         "muxiva.voice.tts.started": "tts.started",
         "muxiva.voice.tts.stopped": "tts.stopped",
     }
@@ -20,7 +22,7 @@ class LocalWsEventSink:
     def on_prepare(self, _ctx=None):
         self.bridge = client("event-sink")
 
-    def on_process(self, frame, _ctx):
+    def on_process(self, frame, ctx):
         topic = getattr(frame, "topic", "")
         kind = self.TOPIC_MAP.get(topic)
         if kind is None:
@@ -30,6 +32,17 @@ class LocalWsEventSink:
         except json.JSONDecodeError:
             payload = {}
         self.bridge.send(json.dumps({"version":"muxiva.dsh.voice/v1","type":kind,**payload}, ensure_ascii=False, separators=(",", ":")))
+        ctx.increment_counter(f"events.{kind.replace('.', '_')}")
+        diagnostic = {
+            key: payload[key]
+            for key in ("stage", "reason", "processing_ms", "text_chars")
+            if key in payload
+        }
+        print(
+            f"[MUXIVA][VOICE][event] type={kind} sequence={getattr(frame, 'sequence', 0)}"
+            f" metadata={json.dumps(diagnostic, ensure_ascii=False, separators=(',', ':'))}",
+            flush=True,
+        )
 
     def on_finish(self, _ctx=None):
         if self.bridge is not None:

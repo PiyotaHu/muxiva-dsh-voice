@@ -12,6 +12,10 @@ test('control frames are versioned and direction checked', () => {
     text: '你好',
   })
   assert.throws(() => decodeControl(wire, 'server'), /unexpected server/)
+  assert.equal(decodeControl(encodeControl('client.mute'), 'client').type, 'client.mute')
+  assert.equal(decodeControl(encodeControl('client.unmute'), 'client').type, 'client.unmute')
+  assert.equal(decodeControl(encodeControl('barge.in'), 'server').type, 'barge.in')
+  assert.equal(decodeControl(encodeControl('asr.rejected'), 'server').type, 'asr.rejected')
 })
 
 test('assistant text prefers the live partial and extracts text blocks only', () => {

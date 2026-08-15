@@ -13,7 +13,7 @@ class LocalWsAudioSink:
         ctx.increment_counter("egress.audio_frames")
 
     def on_signal(self, signal, _ctx=None):
-        if getattr(signal, "name", "") == "muxiva.voice.speech.started":
+        if getattr(signal, "name", "") in {"muxiva.voice.barge_in.confirmed", "muxiva.voice.speech.started"}:
             return
 
     def on_finish(self, _ctx=None):

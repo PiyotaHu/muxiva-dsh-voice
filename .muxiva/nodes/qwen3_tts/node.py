@@ -119,7 +119,7 @@ class Qwen3Tts:
             ctx.schedule_next_tick(10)
 
     def on_signal(self, signal, _ctx=None) -> None:
-        if getattr(signal, "name", "") == "muxiva.voice.speech.started":
+        if getattr(signal, "name", "") in {"muxiva.voice.barge_in.confirmed", "muxiva.voice.speech.started"}:
             with self.lock:
                 self.generation += 1
                 self.pending = 0

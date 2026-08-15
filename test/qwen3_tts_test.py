@@ -159,7 +159,7 @@ class Qwen3TtsTests(unittest.TestCase):
         ctx = Context()
         node.on_process(TextFrame("旧回答", sequence=7), ctx)
         self.assertTrue(first_chunk_ready.wait(timeout=1))
-        node.on_signal(types.SimpleNamespace(name="muxiva.voice.speech.started"))
+        node.on_signal(types.SimpleNamespace(name="muxiva.voice.barge_in.confirmed"))
         release.set()
         self.assertTrue(wait_until(lambda: node.jobs.empty()))
         node.on_process(None, ctx)

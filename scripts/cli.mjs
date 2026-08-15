@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash, randomBytes } from 'node:crypto'
-import { createReadStream, existsSync } from 'node:fs'
+import { createReadStream, createWriteStream, existsSync } from 'node:fs'
 import { mkdir, readFile, rename, stat } from 'node:fs/promises'
 import { spawn, spawnSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
@@ -202,6 +202,17 @@ function childExit(child, label) {
   })
 }
 
+function teeChild(child, label, log) {
+  child.stdout.on('data', chunk => {
+    process.stdout.write(chunk)
+    log.write(`[${label}:stdout] ${chunk}`)
+  })
+  child.stderr.on('data', chunk => {
+    process.stderr.write(chunk)
+    log.write(`[${label}:stderr] ${chunk}`)
+  })
+}
+
 async function start(observe = false) {
   await doctor(false)
   if (process.exitCode) throw new Error('doctor failed; resolve the checks above before start')
@@ -213,19 +224,25 @@ async function start(observe = false) {
     PYTHONPATH: [resolve(root, 'python'), process.env.PYTHONPATH].filter(Boolean).join(':'),
   }
   const runtimePort = portFromEnvironment('MUXIVA_DSH_RUNTIME_PORT', 8080)
+  const logPath = resolve(root, '.muxiva/runtime.log')
+  await mkdir(dirname(logPath), { recursive: true })
+  const log = createWriteStream(logPath, { flags: 'a' })
+  log.write(`\n[supervisor] ${new Date().toISOString()} start mode=${observe ? 'observe' : 'headless'} runtime_port=${runtimePort}\n`)
   console.log(`[voice] starting supervised loopback bridge and Muxiva ${observe ? 'Studio' : 'headless Runtime'}`)
+  console.log(`[voice] persistent runtime log: ${logPath}`)
   if (observe) console.log('[voice] in Studio, select Run and then open ◎ Observe for live Node and Edge telemetry')
   const detached = process.platform !== 'win32'
   const bridge = spawn(pythonPath(), ['-m', 'muxiva_voice_transport.server'], {
-    cwd: root, env, stdio: 'inherit', detached,
+    cwd: root, env, stdio: ['inherit', 'pipe', 'pipe'], detached,
   })
+  teeChild(bridge, 'bridge', log)
   await new Promise((resolveWait, reject) => {
     const timer = setTimeout(resolveWait, 400)
     bridge.once('error', (error) => { clearTimeout(timer); reject(error) })
     bridge.once('exit', (code) => { clearTimeout(timer); reject(new Error(`voice bridge exited during startup with ${code}`)) })
   })
   const muxivaArgs = observe
-    ? ['studio', resolve(root, 'graph.json'), '--host', '127.0.0.1']
+    ? ['studio', resolve(root, 'graph.json'), '--host', '127.0.0.1', ...(process.env.MUXIVA_DSH_STUDIO_NO_OPEN === '1' ? ['--no-open'] : [])]
     : ['serve', resolve(root, 'graph.json'), '--host', '127.0.0.1', '--port', String(runtimePort)]
   let runtime = null
   let stopping = false
@@ -238,8 +255,9 @@ async function start(observe = false) {
   process.once('SIGTERM', stopChildren)
   try {
     runtime = spawn('muxiva', muxivaArgs, {
-      cwd: root, env, stdio: 'inherit', detached,
+      cwd: root, env, stdio: ['inherit', 'pipe', 'pipe'], detached,
     })
+    teeChild(runtime, 'muxiva', log)
     const firstExit = await Promise.race([
       childExit(runtime, 'muxiva'),
       childExit(bridge, 'voice bridge'),
@@ -255,6 +273,8 @@ async function start(observe = false) {
     process.removeListener('SIGTERM', stopChildren)
     if (runtime?.exitCode === null) runtime.kill('SIGINT')
     if (bridge.exitCode === null) bridge.kill('SIGTERM')
+    log.write(`[supervisor] ${new Date().toISOString()} stopped\n`)
+    log.end()
   }
 }
 
@@ -267,6 +287,8 @@ function help() {
   start [--no-observe]
                   run the local voice Graph headlessly (default)
   start --observe open Muxiva Studio for Run/Stop, live Nodes, Edges and traces
+
+Runtime output is persisted to .muxiva/runtime.log in both modes.
 
 Install the DSH surface separately:
   dsh plugin --profile web add @muxiva/dsh-voice`)

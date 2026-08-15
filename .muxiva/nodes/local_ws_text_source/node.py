@@ -29,7 +29,11 @@ class LocalWsTextSource:
             text = str(item.get("text", "")).strip()
             self.sequence += 1
             if kind in {"agent.cancel", "client.stop"}:
-                ctx.emit_signal("muxiva.voice.speech.started", {"source": "dsh-browser", "reason": kind})
+                ctx.emit_signal("muxiva.voice.barge_in.confirmed", {"source": "dsh-browser", "reason": kind})
+            elif kind in {"client.mute", "client.unmute"}:
+                muted = kind == "client.mute"
+                ctx.publish_notification("muxiva.voice.microphone.state", {"muted": muted})
+                ctx.set_gauge("microphone.muted", 1 if muted else 0)
             elif text:
                 ctx.emit("text_out", muxiva.TextFrame(text, sequence=self.sequence))
                 ctx.emit("event_out", muxiva.EventFrame(

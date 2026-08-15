@@ -58,7 +58,8 @@ credentials, or workspace data.
 - **Browser capture → Muxiva Frame:** `AudioWorklet` capture timestamp to the
   corresponding admitted audio Frame.
 - **Speech onset → barge-in Signal:** first speech sample in the calibrated
-  fixture to `muxiva.voice.speech.started` admission.
+  fixture to ASR-confirmed `muxiva.voice.barge_in.confirmed` admission. Raw VAD
+  onset is deliberately excluded because it cannot interrupt a turn by itself.
 - **Speech end → ASR Final:** last speech sample to the Final accepted for the
   DSH turn; preview text does not count.
 - **First DSH text → first TTS PCM:** first complete Agent sentence admitted to

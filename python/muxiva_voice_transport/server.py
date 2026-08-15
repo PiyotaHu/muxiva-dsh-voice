@@ -69,7 +69,10 @@ class Router:
                 if value.get("version") != VERSION or not isinstance(value.get("type"), str):
                     websocket.close(1008, "unsupported voice protocol")
                     return
-                if value["type"] in {"agent.delta", "agent.final", "agent.cancel", "client.stop"}:
+                if value["type"] in {
+                    "agent.delta", "agent.final", "agent.cancel",
+                    "client.mute", "client.unmute", "client.stop",
+                }:
                     self.to_node("text-source", message)
         finally:
             with self.lock:
