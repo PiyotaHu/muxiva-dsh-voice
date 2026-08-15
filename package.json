@@ -50,7 +50,7 @@
     "node": ">=22.19"
   },
   "muxivaVoice": {
-    "muxivaVersion": "0.1.0"
+    "muxivaVersion": "0.1.1"
   },
   "scripts": {
     "check": "node --test && PYTHONPATH=python python3 -m unittest discover -s test -p '*_test.py' && node scripts/check-package.mjs && node scripts/check-performance-report.mjs",

@@ -1,6 +1,6 @@
 # RFC-0001: ship Muxiva Python wheels with releases
 
-Status: **accepted — release workflow implemented; pending the first tagged Muxiva release**.
+Status: **shipped in Muxiva 0.1.1 on 2026-08-16**.
 
 ## Problem
 
@@ -12,8 +12,8 @@ For every Muxiva release, publish an exact-version wheel set alongside the CLI a
 
 - CPython 3.8–3.14 for macOS universal2, Linux x86_64/arm64, and Windows x86_64;
 - SHA-256, GitHub build provenance, and automatic PyPI publish attestations;
-- `muxiva doctor` reports CLI/binding ABI mismatch;
-- the voice plugin pins the exact Muxiva version and verifies the wheel digest.
+- the release publishes SHA-256 manifests and exact artifact provenance;
+- the voice plugin pins and verifies the exact Muxiva CLI/binding version.
 
 This changes release packaging, not the Muxiva Runtime, Graph, Frame or Node contracts.
 

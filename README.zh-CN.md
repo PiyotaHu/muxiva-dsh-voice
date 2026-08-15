@@ -4,7 +4,7 @@
 
 麦克风、VAD、ASR、分句、TTS、播放和打断链路都留在 Mac 本机；DSH 继续负责有状态 Agent、工具、权限、会话和 Web 聊天记录。
 
-> 当前是 Alpha：源码联调路径已经建立。面向陌生用户的真正一条命令安装，还需要 Muxiva Release 提供 macOS arm64 Python wheel，详见 [RFC-0001](docs/reference/rfc-0001-python-wheel.md)。
+> 当前是 Alpha：源码联调路径已经建立。Muxiva 0.1.1 已发布 CPython 3.8–3.14 Wheel（包括 macOS universal2）；面向陌生用户的一条命令安装现在只剩 npm 发布门禁。
 
 ## 源码快速开始
 

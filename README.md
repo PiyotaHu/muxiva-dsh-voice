@@ -4,7 +4,7 @@ Local-first, full-duplex voice for the official [DeepSeek Harness](https://githu
 
 Your microphone, VAD, ASR, sentence scheduling, TTS, playback and interruption path stay on the Mac. DSH remains the stateful Agent harness and keeps its tools, sessions and Web transcript.
 
-> Alpha: the integration contract and source-checkout path are testable today. A public one-command binary install additionally needs a Muxiva macOS arm64 Python wheel; see [RFC-0001](docs/reference/rfc-0001-python-wheel.md).
+> Alpha: the integration contract and source-checkout path are testable today. Muxiva 0.1.1 wheels are published for CPython 3.8–3.14, including macOS universal2; npm publication remains the final distribution gate.
 
 ## What runs where
 
@@ -58,7 +58,7 @@ Open the printed DSH URL, create or open a session, then select the large voice 
 
 ## Published release UX
 
-Once the Muxiva wheel gate in RFC-0001 is shipped, the intended user path is:
+The public installation path is:
 
 ```bash
 dsh plugin --profile web add @muxiva/dsh-voice
