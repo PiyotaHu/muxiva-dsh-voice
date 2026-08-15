@@ -92,6 +92,7 @@ class Router:
                 if role == "audio-sink" and isinstance(message, bytes):
                     self.to_browser(message)
                 elif role == "event-sink" and isinstance(message, str):
+                    self.log_voice_event(message)
                     self.to_browser(message)
         finally:
             with self.lock:
@@ -109,6 +110,24 @@ class Router:
             target = self.browser
         if target is not None:
             target.send(message)
+
+    @staticmethod
+    def log_voice_event(message: str) -> None:
+        try:
+            event = json.loads(message)
+        except json.JSONDecodeError:
+            print("[MUXIVA][VOICE][event.invalid] reason=invalid-json", flush=True)
+            return
+        diagnostic = {
+            key: event[key]
+            for key in ("stage", "reason", "processing_ms", "text_chars")
+            if key in event
+        }
+        print(
+            f"[MUXIVA][VOICE][event] type={event.get('type', 'unknown')}"
+            f" metadata={json.dumps(diagnostic, ensure_ascii=False, separators=(',', ':'))}",
+            flush=True,
+        )
 
 
 def main() -> None:

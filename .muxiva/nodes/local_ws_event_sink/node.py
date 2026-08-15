@@ -33,16 +33,6 @@ class LocalWsEventSink:
             payload = {}
         self.bridge.send(json.dumps({"version":"muxiva.dsh.voice/v1","type":kind,**payload}, ensure_ascii=False, separators=(",", ":")))
         ctx.increment_counter(f"events.{kind.replace('.', '_')}")
-        diagnostic = {
-            key: payload[key]
-            for key in ("stage", "reason", "processing_ms", "text_chars")
-            if key in payload
-        }
-        print(
-            f"[MUXIVA][VOICE][event] type={kind} sequence={getattr(frame, 'sequence', 0)}"
-            f" metadata={json.dumps(diagnostic, ensure_ascii=False, separators=(',', ':'))}",
-            flush=True,
-        )
 
     def on_finish(self, _ctx=None):
         if self.bridge is not None:
