@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate model lock shape
         run: |
-          jq -e '.version == 1 and (.models | length == 4)' models.lock.json
+          jq -e '.version == 1 and (.models | length == 5)' models.lock.json
           jq -e 'all(.models[]; (.sha256 | test("^[0-9a-f]{64}$")) and (.url | startswith("https://")))' models.lock.json
 
   browser-artifact:
