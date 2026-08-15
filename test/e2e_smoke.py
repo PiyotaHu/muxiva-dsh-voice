@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import wave
 from pathlib import Path
@@ -12,7 +13,8 @@ from websockets.sync.client import connect
 
 
 def main() -> None:
-    with connect("ws://127.0.0.1:4390/voice", max_size=262_144, compression=None) as websocket:
+    public_port = int(os.environ.get("MUXIVA_DSH_BRIDGE_PUBLIC_PORT", "4390"))
+    with connect(f"ws://127.0.0.1:{public_port}/voice", max_size=262_144, compression=None) as websocket:
         ready = json.loads(websocket.recv(timeout=5))
         assert ready["type"] == "server.ready", ready
         websocket.send(json.dumps({

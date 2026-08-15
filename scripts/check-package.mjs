@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 for (const file of ['package.json', 'graph.json', 'models.lock.json', 'benchmarks/schema.json']) JSON.parse(await readFile(resolve(root, file), 'utf8'))
+const metadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
+if (metadata.publishConfig?.access !== 'public') throw new Error('scoped npm package must publish publicly')
+if (metadata.publishConfig?.registry !== 'https://registry.npmjs.org/') throw new Error('npm release registry is not pinned')
 const graph = JSON.parse(await readFile(resolve(root, 'graph.json'), 'utf8'))
 const modelLock = JSON.parse(await readFile(resolve(root, 'models.lock.json'), 'utf8'))
 const graphText = JSON.stringify(graph)

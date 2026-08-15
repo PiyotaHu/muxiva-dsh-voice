@@ -27,4 +27,14 @@ jobs:
         run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
       - name: Require a certified performance report for this release
         run: node scripts/check-performance-report.mjs --require-version "$(node -p 'require("./package.json").version')"
-      - run: npm publish --access public
+      - name: Publish with the release-appropriate dist-tag
+        shell: bash
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [[ "$version" == *-* ]]; then
+            dist_tag="${version#*-}"
+            dist_tag="${dist_tag%%.*}"
+          else
+            dist_tag="latest"
+          fi
+          npm publish --access public --tag "$dist_tag"

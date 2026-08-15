@@ -185,6 +185,23 @@ function observeMode(argv) {
   return flags.includes('--observe')
 }
 
+function portFromEnvironment(name, fallback) {
+  const raw = process.env[name]
+  if (raw === undefined) return fallback
+  const port = Number(raw)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`${name} must be an integer between 1 and 65535`)
+  }
+  return port
+}
+
+function childExit(child, label) {
+  return new Promise((resolveExit, reject) => {
+    child.once('error', reject)
+    child.once('exit', code => resolveExit({ label, code }))
+  })
+}
+
 async function start(observe = false) {
   await doctor(false)
   if (process.exitCode) throw new Error('doctor failed; resolve the checks above before start')
@@ -195,6 +212,7 @@ async function start(observe = false) {
     MUXIVA_DSH_BRIDGE_TOKEN: token,
     PYTHONPATH: [resolve(root, 'python'), process.env.PYTHONPATH].filter(Boolean).join(':'),
   }
+  const runtimePort = portFromEnvironment('MUXIVA_DSH_RUNTIME_PORT', 8080)
   console.log(`[voice] starting supervised loopback bridge and Muxiva ${observe ? 'Studio' : 'headless Runtime'}`)
   if (observe) console.log('[voice] in Studio, select Run and then open ◎ Observe for live Node and Edge telemetry')
   const detached = process.platform !== 'win32'
@@ -208,24 +226,36 @@ async function start(observe = false) {
   })
   const muxivaArgs = observe
     ? ['studio', resolve(root, 'graph.json'), '--host', '127.0.0.1']
-    : ['serve', resolve(root, 'graph.json'), '--host', '127.0.0.1', '--port', '8080']
-  const runtime = spawn('muxiva', muxivaArgs, {
-    cwd: root, env, stdio: 'inherit', detached,
-  })
+    : ['serve', resolve(root, 'graph.json'), '--host', '127.0.0.1', '--port', String(runtimePort)]
+  let runtime = null
   let stopping = false
   const stopChildren = () => {
     if (stopping) return
     stopping = true
-    runtime.kill('SIGINT')
+    if (runtime?.exitCode === null) runtime.kill('SIGINT')
   }
   process.once('SIGINT', stopChildren)
   process.once('SIGTERM', stopChildren)
-  const code = await new Promise((resolveExit, reject) => {
-    runtime.once('error', reject)
-    runtime.once('exit', resolveExit)
-  })
-  bridge.kill('SIGTERM')
-  if (!stopping && code !== 0 && code !== null) throw new Error(`muxiva exited with ${code}`)
+  try {
+    runtime = spawn('muxiva', muxivaArgs, {
+      cwd: root, env, stdio: 'inherit', detached,
+    })
+    const firstExit = await Promise.race([
+      childExit(runtime, 'muxiva'),
+      childExit(bridge, 'voice bridge'),
+    ])
+    if (firstExit.label === 'voice bridge' && !stopping) {
+      throw new Error(`voice bridge exited unexpectedly with ${firstExit.code}`)
+    }
+    if (firstExit.label === 'muxiva' && !stopping && firstExit.code !== 0 && firstExit.code !== null) {
+      throw new Error(`muxiva exited with ${firstExit.code}`)
+    }
+  } finally {
+    process.removeListener('SIGINT', stopChildren)
+    process.removeListener('SIGTERM', stopChildren)
+    if (runtime?.exitCode === null) runtime.kill('SIGINT')
+    if (bridge.exitCode === null) bridge.kill('SIGTERM')
+  }
 }
 
 function help() {

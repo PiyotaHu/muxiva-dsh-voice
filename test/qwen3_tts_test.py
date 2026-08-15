@@ -168,6 +168,28 @@ class Qwen3TtsTests(unittest.TestCase):
         self.assertFalse(any(port == "audio_out" for port, _ in ctx.emissions))
         self.assertEqual(node.pending, 0)
 
+    def test_abort_is_non_blocking_for_out_of_process_host_shutdown(self):
+        started = threading.Event()
+        release = threading.Event()
+
+        class Model:
+            def generate_custom_voice(self, **_):
+                started.set()
+                release.wait(timeout=0.15)
+                yield Result([0.1] * 32)
+
+        node = module.Qwen3Tts({}, lambda _: Model())
+        node.on_prepare()
+        node.on_process(TextFrame("即将取消", sequence=9), Context())
+        self.assertTrue(started.wait(timeout=1))
+
+        before = time.monotonic()
+        node.on_abort("runtime shutdown")
+        self.assertLess(time.monotonic() - before, 0.5)
+        self.assertTrue(node.closing.is_set())
+        release.set()
+        self.assertFalse(node.worker.is_alive())
+
 
 if __name__ == "__main__":
     unittest.main()

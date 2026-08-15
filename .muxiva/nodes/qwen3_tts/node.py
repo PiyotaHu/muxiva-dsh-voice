@@ -30,8 +30,10 @@ class Qwen3Tts:
         self.pending = 0
         self.lock = threading.Lock()
         self.closing = threading.Event()
+        self.ready = threading.Event()
+        self.startup_error = None
         self.worker = None
-        self.model = None
+        self.model_dir = None
         self.np = None
 
     def on_prepare(self, _ctx=None) -> None:
@@ -47,8 +49,11 @@ class Qwen3Tts:
         try:
             from tqdm import tqdm
             # Project Node Hosts have an explicit lifecycle; tqdm's global
-            # daemon monitor can otherwise race Python 3.13 finalization.
+            # daemon monitor can otherwise race Python 3.13 finalization. Its
+            # default multiprocessing write lock also leaves a named semaphore
+            # behind when the out-of-process Host is terminated.
             tqdm.monitor_interval = 0
+            tqdm.set_lock(threading.RLock())
         except ImportError:
             pass
 
@@ -60,15 +65,14 @@ class Qwen3Tts:
             raise RuntimeError(f"Qwen3-TTS model is missing: {model_dir}; run `npm run models`")
 
         self.np = np
-        # A Project Node Host reserves stdout for its JSON-RPC protocol. MLX-Audio
-        # and Transformers may print model diagnostics during construction, so
-        # keep all third-party chatter on stderr.
-        with redirect_stdout(sys.stderr):
-            self.model = self.model_loader(str(model_dir))
-        if not callable(getattr(self.model, "generate_custom_voice", None)):
-            raise RuntimeError("the configured model is not a Qwen3-TTS CustomVoice checkpoint")
+        self.model_dir = model_dir
         self.worker = threading.Thread(target=self._work, name="muxiva-qwen3-tts", daemon=True)
         self.worker.start()
+        if not self.ready.wait(timeout=120):
+            self._request_stop()
+            raise RuntimeError("Qwen3-TTS model loading timed out after 120 seconds")
+        if self.startup_error is not None:
+            raise RuntimeError(f"Qwen3-TTS model loading failed: {self.startup_error}") from self.startup_error
 
     def on_process(self, frame, ctx) -> None:
         if frame is not None and hasattr(frame, "text"):
@@ -123,41 +127,61 @@ class Qwen3Tts:
             self._drain(self.results)
 
     def _work(self) -> None:
-        while not self.closing.is_set():
-            job = self.jobs.get()
-            if job is None:
-                return
-            generation, sequence, text = job
-            if generation != self._current_generation():
-                continue
-            try:
-                stream = self.model.generate_custom_voice(
-                    text=text,
-                    speaker=str(self.config.get("speaker", "Vivian")),
-                    language=str(self.config.get("language", "Auto")),
-                    instruct=str(self.config.get("instruct", "自然、温暖、清晰的对话语气。")),
-                    stream=True,
-                    streaming_interval=float(self.config.get("streaming_interval", 0.32)),
-                )
-                for result in stream:
-                    if generation != self._current_generation() or self.closing.is_set():
-                        close = getattr(stream, "close", None)
-                        if callable(close):
-                            close()
-                        break
-                    sample_rate = int(getattr(result, "sample_rate", self.SAMPLE_RATE))
-                    if sample_rate != self.SAMPLE_RATE:
-                        raise RuntimeError(
-                            f"expected Qwen3-TTS {self.SAMPLE_RATE} Hz audio, received {sample_rate} Hz"
-                        )
-                    samples = self.np.asarray(result.audio, dtype=self.np.float32).reshape(-1)
-                    pcm = (self.np.clip(samples, -1, 1) * 32767).astype(self.np.int16).tobytes()
-                    self._queue_pcm(generation, sequence, pcm)
-                if generation == self._current_generation() and not self.closing.is_set():
-                    self.results.put((generation, sequence, "done", None))
-            except Exception as error:
-                if generation == self._current_generation() and not self.closing.is_set():
-                    self.results.put((generation, sequence, "error", error))
+        model = None
+        try:
+            # MLX 0.31 uses thread-local streams. Construct, execute and destroy
+            # the model on this one worker thread; crossing threads can corrupt
+            # C-extension thread state during Python 3.13 shutdown.
+            # stdout is reserved for the Project Node Host JSON-RPC protocol.
+            with redirect_stdout(sys.stderr):
+                model = self.model_loader(str(self.model_dir))
+            if not callable(getattr(model, "generate_custom_voice", None)):
+                raise RuntimeError("the configured model is not a Qwen3-TTS CustomVoice checkpoint")
+        except Exception as error:
+            self.startup_error = error
+            self.ready.set()
+            return
+        self.ready.set()
+
+        try:
+            while not self.closing.is_set():
+                job = self.jobs.get()
+                if job is None:
+                    return
+                generation, sequence, text = job
+                if generation != self._current_generation():
+                    continue
+                try:
+                    stream = model.generate_custom_voice(
+                        text=text,
+                        speaker=str(self.config.get("speaker", "Vivian")),
+                        language=str(self.config.get("language", "Auto")),
+                        instruct=str(self.config.get("instruct", "自然、温暖、清晰的对话语气。")),
+                        stream=True,
+                        streaming_interval=float(self.config.get("streaming_interval", 0.32)),
+                    )
+                    for result in stream:
+                        if generation != self._current_generation() or self.closing.is_set():
+                            close = getattr(stream, "close", None)
+                            if callable(close):
+                                close()
+                            break
+                        sample_rate = int(getattr(result, "sample_rate", self.SAMPLE_RATE))
+                        if sample_rate != self.SAMPLE_RATE:
+                            raise RuntimeError(
+                                f"expected Qwen3-TTS {self.SAMPLE_RATE} Hz audio, received {sample_rate} Hz"
+                            )
+                        samples = self.np.asarray(result.audio, dtype=self.np.float32).reshape(-1)
+                        pcm = (self.np.clip(samples, -1, 1) * 32767).astype(self.np.int16).tobytes()
+                        self._queue_pcm(generation, sequence, pcm)
+                    if generation == self._current_generation() and not self.closing.is_set():
+                        self.results.put((generation, sequence, "done", None))
+                except Exception as error:
+                    if generation == self._current_generation() and not self.closing.is_set():
+                        self.results.put((generation, sequence, "error", error))
+        finally:
+            model = None
+            self._release_model()
 
     def _queue_pcm(self, generation: int, sequence: int, pcm: bytes) -> None:
         samples_per_chunk = self.SAMPLE_RATE * int(self.config.get("pcm_chunk_ms", 40)) // 1000
@@ -176,8 +200,9 @@ class Qwen3Tts:
     def on_finish(self, _ctx=None) -> None:
         self._request_stop()
         if self.worker is not None:
-            self.worker.join(timeout=3)
-        self._release_model()
+            self.worker.join(timeout=5)
+            if self.worker.is_alive():
+                raise RuntimeError("Qwen3-TTS worker did not stop within 5 seconds")
 
     def _request_stop(self) -> None:
         self.closing.set()
@@ -189,18 +214,18 @@ class Qwen3Tts:
             self.jobs.put_nowait(None)
 
     def on_abort(self, _reason, _ctx=None) -> None:
-        # Muxiva closes an out-of-process Project Node Host immediately after
-        # abort acknowledgement. Release Metal objects while Python still owns
-        # the GIL instead of leaving them to interpreter finalization.
+        # The Host exits after this acknowledgement, so the MLX owner thread
+        # must finish before Python starts interpreter teardown.
         self._request_stop()
         if self.worker is not None:
-            self.worker.join(timeout=1)
-        self._release_model()
+            self.worker.join(timeout=5)
+            if self.worker.is_alive():
+                raise RuntimeError("Qwen3-TTS worker did not stop within 5 seconds")
 
     def _release_model(self) -> None:
-        self.model = None
         try:
             import mlx.core as mx
+            mx.synchronize()
             mx.clear_cache()
         except (ImportError, RuntimeError):
             pass
