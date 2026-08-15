@@ -74,11 +74,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/muxiva/muxiva-dsh-voice.git"
+    "url": "git+https://github.com/PiyotaHu/muxiva-dsh-voice.git"
   },
-  "homepage": "https://muxiva.github.io/muxiva-dsh-voice/",
+  "homepage": "https://piyotahu.github.io/muxiva-dsh-voice/",
   "bugs": {
-    "url": "https://github.com/muxiva/muxiva-dsh-voice/issues"
+    "url": "https://github.com/PiyotaHu/muxiva-dsh-voice/issues"
   },
   "license": "Apache-2.0",
   "peerDependencies": {

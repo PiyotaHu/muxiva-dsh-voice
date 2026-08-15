@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://muxiva.github.io/muxiva-dsh-voice/benchmarks/schema.json",
+  "$id": "https://piyotahu.github.io/muxiva-dsh-voice/benchmarks/schema.json",
   "title": "Muxiva DSH Voice certified performance report",
   "type": "object",
   "additionalProperties": false,

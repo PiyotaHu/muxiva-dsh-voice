@@ -25,7 +25,7 @@ DSH assistant deltas ─────────▶ sentence buffer ─▶ speec
 Prerequisites: macOS arm64, Node.js 22.19+, Python 3.11–3.13, Rust, Muxiva source at `../muxiva`, the `muxiva` CLI, and an installed official DSH CLI.
 
 ```bash
-git clone https://github.com/muxiva/muxiva-dsh-voice.git
+git clone https://github.com/PiyotaHu/muxiva-dsh-voice.git
 cd muxiva-dsh-voice
 
 # Build the project Python environment and fetch SHA-256 pinned models.

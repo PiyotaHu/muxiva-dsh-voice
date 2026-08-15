@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Documents · Muxiva Voice</title><link rel="stylesheet" href="./styles.css"></head>
 <body class="docs-body">
-  <header class="nav"><a class="brand" href="./"><span class="mark">M</span><span>Muxiva Voice</span></a><nav><a href="./">Showcase</a><a class="active" href="./docs.html">Documents</a><a href="https://github.com/muxiva/muxiva-dsh-voice">GitHub</a></nav></header>
+  <header class="nav"><a class="brand" href="./"><span class="mark">M</span><span>Muxiva Voice</span></a><nav><a href="./">Showcase</a><a class="active" href="./docs.html">Documents</a><a href="https://github.com/PiyotaHu/muxiva-dsh-voice">GitHub</a></nav></header>
   <div class="docs-shell">
     <aside><b>开始</b><a href="#install">安装</a><a href="#run">运行</a><a href="#use">使用</a><b>理解系统</b><a href="#architecture">架构</a><a href="#barge-in">打断</a><a href="#models">模型</a><a href="#performance">性能</a><b>运维</b><a href="#doctor">Doctor</a><a href="#security">安全</a><a href="#release">发布</a></aside>
     <article class="docs">
@@ -20,7 +20,7 @@ dsh plugin --profile web add .</code></pre>
       <p>低延迟 Zipformer Partial 只用于 UI 预览；VAD 截断后由 SenseVoice 自动检测中英文并生成唯一提交给 Agent 的 Final。Agent 文本先按自然句边界聚合，再通过 Muxiva formatter 与独立 normalizer Node 清除 Markdown、emoji 并口语化中文数字，最后进入 Kokoro。</p>
       <h2 id="barge-in">打断语义</h2><p>Silero 检测到新语音时，Muxiva 发出 <code>muxiva.voice.speech.started</code> Signal，取消 TTS 并清空播放；浏览器同步调用 DSH <code>session.cancel()</code>。新 ASR Final 到达后开启下一 Turn。Generation fence 会丢弃已经在后台返回的旧 PCM。</p>
       <h2 id="models">默认模型</h2><table><thead><tr><th>层</th><th>默认选择</th><th>原因</th></tr></thead><tbody><tr><td>VAD</td><td>Silero ONNX</td><td>成熟、轻量、MIT</td></tr><tr><td>ASR Preview</td><td>Zipformer2 CTC zh small</td><td>真流式、低延迟、Apache-2.0</td></tr><tr><td>ASR Final</td><td>SenseVoiceSmall int8</td><td>中英自动检测、ITN、Apple Silicon CPU</td></tr><tr><td>Text</td><td>speech_text_normalizer</td><td>Markdown / emoji / 中文数字口语化</td></tr><tr><td>TTS</td><td>Kokoro v1.1 zh/en</td><td>中文音色 zf_032、24 kHz、可取消</td></tr></tbody></table>
-      <h2 id="performance">性能数据</h2><p>第一台认证机器是 16 GB MacBook Pro M1 Pro。当前展示的延迟数字是 Release Gate，不是实测结果；第一份公开实测报告随 npm Release 发布。每个版本必须提交包含 p50/p95/p99、ASR/TTS 实时系数、CPU、峰值内存、中文 CER、英文 WER、打断残留和 30 分钟稳定性的版本化 JSON，否则 Release 会失败。完整测量边界见仓库的 <a href="https://github.com/muxiva/muxiva-dsh-voice/blob/main/docs/guide/performance.md">Performance and acceptance</a>。</p>
+      <h2 id="performance">性能数据</h2><p>第一台认证机器是 16 GB MacBook Pro M1 Pro。当前展示的延迟数字是 Release Gate，不是实测结果；第一份公开实测报告随 npm Release 发布。每个版本必须提交包含 p50/p95/p99、ASR/TTS 实时系数、CPU、峰值内存、中文 CER、英文 WER、打断残留和 30 分钟稳定性的版本化 JSON，否则 Release 会失败。完整测量边界见仓库的 <a href="https://github.com/PiyotaHu/muxiva-dsh-voice/blob/main/docs/guide/performance.md">Performance and acceptance</a>。</p>
       <h2 id="doctor">Doctor</h2><pre><button data-copy-code>复制</button><code>npx @muxiva/dsh-voice doctor</code></pre><p>检查 Apple Silicon、Node、Muxiva CLI、项目 Python 导入和每个模型校验和。任何一行失败都不会启动 Graph。</p>
       <h2 id="security">安全</h2><ul><li>桥只绑定 <code>127.0.0.1</code>，拒绝第二个浏览器客户端。</li><li>内部 Node Host 平面使用每次启动生成的 256-bit token。</li><li>npm 安装不执行 prepare/postinstall。</li><li>音频不上传，无云端 fallback。</li><li>模型不打进 npm 包，按锁文件单独下载。</li><li>稳定版前会为浏览器平面补充不落盘的 bearer challenge。</li></ul>
       <h2 id="release">发布到哪里</h2><p>DSH 当前没有集中式插件市场。正式发布采用 npm 包 <code>@muxiva/dsh-voice</code>，GitHub 仓库添加 <code>dsh-plugin</code> Topic，并提供 GitHub Pages Showcase。每个版本精确声明兼容的 DSH RC 与 Muxiva Release。</p>
