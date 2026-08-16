@@ -1,24 +1,32 @@
-# Show Your Plugins: local, full-duplex voice for DSH, powered by Muxiva
+# DeepSeek Harness Discussion launch draft
 
-I’m releasing **Muxiva Voice for DeepSeek Harness**: an open-source, local-first voice plugin for DSH Web on Apple Silicon.
+## Recommended title
 
-It turns a DSH session into a full-duplex voice assistant while keeping the complete speech path on the Mac:
+**Make DeepSeek Harness hear and speak — dsh-voice, a local full-duplex voice agent plugin**
 
-`browser mic → Silero VAD → streaming ASR preview → SenseVoice zh/en final → DSH Agent/Tools → text normalization → Qwen3-TTS/MLX → browser speaker`
+## Post body
 
-What makes it different is the runtime underneath. This is not a callback chain around speech SDKs: Muxiva owns typed audio/text Frames, bounded queues, backpressure, cancellation Signals, generation fences, and live Node/Edge observability. DSH continues to own sessions, models, tools, permissions, and the Web transcript. Neither upstream repository is patched.
+I built **dsh-voice**, an open-source plugin that gives DeepSeek Harness Web a voice: speak naturally to your DSH agent, hear its answer, and interrupt it while it is talking.
 
-The interaction model includes:
+The complete speech path runs locally on your Mac. DeepSeek Harness still owns the conversation, Agent, tools, permissions, and model selection.
 
-- a large DSH Web voice orb with listening/hearing/thinking/speaking states;
-- mute/unmute without tearing down Web Audio, WebSocket, Graph, or local models;
-- ASR-confirmed barge-in, so random VAD noise does not cancel an answer;
-- Chinese/English final recognition with noise and language hallucination gates;
-- local Qwen3-TTS with a calm Serena voice and cancellable bounded playback;
-- spoken-text cleanup for Markdown, emoji, URLs, decorative punctuation, and Chinese numbers;
-- `start --observe` for live Muxiva Node latency, Edge rates/queue age, internal buffers, traces, and hotspot verdicts.
+<!-- Drag the short demo recording here. Recommended: 20–30 seconds, with captions. -->
 
-Install the alpha:
+<!-- Add one screenshot here: the large voice orb in its listening or speaking state. -->
+
+### What it feels like
+
+- Click the large voice orb and start talking—no push-to-talk loop.
+- See the recognized text in the normal DSH conversation.
+- Hear a local Mandarin or English response.
+- Start speaking to interrupt playback; noise alone does not interrupt the Agent.
+- Mute and unmute the microphone without unloading the audio pipeline or local models.
+
+### Who can run it
+
+The current alpha targets **macOS on Apple Silicon** and supports **DeepSeek Harness rc.5 and rc.6**; the release is certified on rc.6 and a MacBook Pro M1 Pro with 16 GB RAM. Initial setup downloads about **2.5 GB** of pinned models and creates an isolated local Python environment.
+
+Install it directly from npm:
 
 ```bash
 dsh plugin --profile web add @muxiva/dsh-voice@alpha
@@ -26,28 +34,57 @@ npx @muxiva/dsh-voice@alpha setup
 npx @muxiva/dsh-voice@alpha start
 ```
 
-Then run `dsh --profile web` in another terminal and click the voice orb above the composer.
+Then start `dsh --profile web` in another terminal and click the voice orb above the composer.
 
-Compatibility: Muxiva 0.1.1, DSH rc.5/rc.6 (certified on rc.6), macOS Apple Silicon. The setup downloads about 2.5 GB of pinned local models. Models and the isolated Python environment live in the stable OS user-data directory, not the `npx` cache.
+### The local voice pipeline
 
-The attached M1 Pro certification completed 130/130 turns and 30/30 interruptions with zero failed turns, TTS underruns, or stale post-interruption audio. The report publishes the full p50/p95/p99 distributions and explicitly includes the two-second conversational endpoint and ASR-confirmed interruption delay.
+```text
+Browser microphone
+  → Silero VAD
+  → Zipformer streaming ASR preview
+  → SenseVoice Chinese/English ASR final
+  → DeepSeek Harness Agent and tools
+  → spoken-text normalization
+  → Qwen3-TTS 0.6B CustomVoice 8-bit on MLX (Serena)
+  → browser speaker
+```
 
-- Repository: https://github.com/PiyotaHu/muxiva-dsh-voice
-- Showcase and docs: https://piyotahu.github.io/muxiva-dsh-voice/
-- npm: https://www.npmjs.com/package/@muxiva/dsh-voice
-- Performance report: https://github.com/PiyotaHu/muxiva-dsh-voice/blob/main/docs/guide/performance.md
+The pipeline is orchestrated by **Muxiva**, an open-source real-time multimodal runtime. Muxiva provides typed audio/text Frames, bounded queues, backpressure, cancellation, generation fences, and Node/Edge observability. That is what lets the plugin keep microphone capture, ASR, Agent streaming, interruption, TTS generation, and browser playback synchronized without patching DeepSeek Harness.
 
-I’d especially value feedback on real-room Chinese/English ASR, perceived TTS consistency, and the DSH plugin integration contract.
+For live diagnostics, start it with:
+
+```bash
+npx @muxiva/dsh-voice@alpha start --observe
+```
+
+### Measured on an M1 Pro
+
+The alpha.2 certification completed **130/130 turns** and **30/30 mid-answer interruptions**, plus five minutes of idle listening and a 30-minute soak. It recorded zero failed turns, zero TTS underruns, and zero stale audio after interruption. The public report includes p50/p95/p99 latency, Mandarin CER, English WER, CPU, memory, model storage, methodology, and the machine-readable result.
+
+### Links
+
+- **Code:** https://github.com/PiyotaHu/muxiva-dsh-voice
+- **Showcase and documentation:** https://piyotahu.github.io/muxiva-dsh-voice/
+- **Getting started:** https://piyotahu.github.io/muxiva-dsh-voice/docs.html#install
+- **Performance report:** https://piyotahu.github.io/muxiva-dsh-voice/docs.html#performance
+- **npm:** https://www.npmjs.com/package/@muxiva/dsh-voice
+- **alpha.2 release:** https://github.com/PiyotaHu/muxiva-dsh-voice/releases/tag/v0.1.0-alpha.2
+
+This is an alpha, and real-room feedback matters most now. I would especially value reports about Chinese/English recognition, TTS consistency, interruption behavior, and different Apple Silicon machines.
 
 ---
 
-## 中文同步文案
+## 中文版（可用于国内社区同步）
 
-发布一个面向 DSH Web 的本地全双工语音插件：**Muxiva Voice for DeepSeek Harness**。麦克风、VAD、中英文 ASR、文本清洗、Qwen3-TTS 和播放全部留在 Apple Silicon Mac 本机；DSH 继续负责 Session、模型、工具、权限与聊天记录。
+### 推荐标题
 
-底层不是简单的 SDK 回调串联，而是由 Muxiva 提供类型化 Frame、有界队列、背压、取消 Signal、generation fence 和实时 Node/Edge 可观测性。支持大号语音 Orb、不断链静音、ASR 出字后才确认打断、杂音/语言幻觉过滤、本机 Qwen3-TTS，以及 `start --observe` 的完整诊断视图。
+**让你的 DeepSeek Harness 能听会说：dsh-voice 本地全双工语音 Agent 插件**
 
-一键体验：
+我做了一个开源的 **dsh-voice** 插件，让 DeepSeek Harness Web 可以直接听你说话、显示识别结果、用语音回答，并且支持在回答途中自然打断。
+
+整条语音链路都在 Mac 本机运行；DeepSeek Harness 继续负责会话、Agent、工具、权限和模型选择。
+
+目前适用于 **Apple Silicon Mac**，兼容 **DSH rc.5 / rc.6**，并已在 16 GB 的 MacBook Pro M1 Pro 和 DSH rc.6 上完成认证。首次安装会下载约 2.5 GB 的固定版本模型。
 
 ```bash
 dsh plugin --profile web add @muxiva/dsh-voice@alpha
@@ -55,4 +92,24 @@ npx @muxiva/dsh-voice@alpha setup
 npx @muxiva/dsh-voice@alpha start
 ```
 
-兼容 Muxiva 0.1.1 与 DSH rc.5/rc.6，本轮性能认证以 rc.6 为准。
+本地管线为：
+
+```text
+浏览器麦克风
+  → Silero VAD
+  → Zipformer 流式识别预览
+  → SenseVoice 中英文最终识别
+  → DeepSeek Harness Agent / Tools
+  → 口语文本清洗
+  → Qwen3-TTS 0.6B 8-bit + MLX（Serena）
+  → 浏览器播放
+```
+
+底层由实时多模态运行时 **Muxiva** 编排，负责类型化 Frame、有界队列、背压、取消、generation fence，以及 Node/Edge 可观测性。它让麦克风、ASR、Agent 流式输出、语音打断、TTS 和播放保持同步，无需修改 DeepSeek Harness 源码。
+
+alpha.2 在 M1 Pro 上完成了 **130/130 轮对话**、**30/30 次回答中打断**和 30 分钟持续运行，失败轮次、TTS 断流和打断后的残留音频均为 0。完整延迟分布、中英文准确率、CPU、内存、模型空间和复现方法均已公开在性能报告中。
+
+- 代码：https://github.com/PiyotaHu/muxiva-dsh-voice
+- Showcase 与文档：https://piyotahu.github.io/muxiva-dsh-voice/
+- 性能报告：https://piyotahu.github.io/muxiva-dsh-voice/docs.html#performance
+- npm：https://www.npmjs.com/package/@muxiva/dsh-voice

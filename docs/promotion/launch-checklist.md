@@ -17,13 +17,18 @@
 
 ## Demo capture
 
-Record one continuous 45–60 second screen capture:
+Prepare these three assets before posting:
 
-1. clean `dsh plugin add` and `npx ... start` command already completed;
-2. open DSH Web and click the large orb;
-3. ask one Chinese question and show the transcript plus calm TTS response;
-4. interrupt the answer with meaningful speech;
-5. mute, wait, unmute, and ask one English question;
-6. briefly switch to Muxiva Studio Observe to show Node latency and Edge queue age.
+1. `dsh-voice-hero.png`: DSH Web with the large voice orb in its cyan listening state, a short recognized Chinese message, and the latest Agent answer. Use this as the first image.
+2. `dsh-voice-observe.png`: the Muxiva Observe view showing the active Graph, Node latency, and Edge queue age. Place this after the pipeline section.
+3. `dsh-voice-demo.mp4`: one continuous 45–60 second product recording. Place it directly after the opening two paragraphs.
 
-Use headphones, hide private paths/session names, and do not edit out the interaction latency.
+The recording should show:
+
+1. DSH Web already open, then click the large orb;
+2. ask one short Chinese question and show the transcript plus calm TTS response;
+3. interrupt the answer with meaningful speech;
+4. mute for two seconds, unmute, and ask one short English question;
+5. briefly switch to Muxiva Observe to show Node latency and Edge queue age.
+
+Record at 1440p or higher, enlarge the browser to keep the orb and transcript readable, use headphones to avoid acoustic echo, hide private paths/session names, and do not edit out the interaction latency. Add Chinese and English captions, but keep the original local TTS audio. Export H.264 MP4; create a short GIF only if the target surface does not autoplay video.
