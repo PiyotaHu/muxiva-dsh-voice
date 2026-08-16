@@ -45,6 +45,22 @@ def _is_emoji(character: str) -> bool:
     )
 
 
+def _emoji_to_pause(text: str) -> str:
+    """Turn an emoji run into one prosodic boundary instead of gluing words."""
+
+    output: list[str] = []
+    inside_emoji = False
+    for character in text:
+        if _is_emoji(character):
+            if not inside_emoji:
+                output.append(",")
+            inside_emoji = True
+        else:
+            output.append(character)
+            inside_emoji = False
+    return "".join(output)
+
+
 def _digits(value: str) -> str:
     return "".join(_DIGITS[int(character)] for character in value if character.isdigit())
 
@@ -137,7 +153,7 @@ def normalize_for_speech(
     text = re.sub(r"(?m)^\s*[-‐‑‒–—―_=]{2,}\s*$", " ", text)
     text = re.sub(r"(?m)^\s{0,3}(?:#{1,6}|>|[-+*]|\d+[.)])\s+", "", text)
     text = re.sub(r"[*_~]{1,3}", "", text)
-    text = "".join(character for character in text if not _is_emoji(character))
+    text = _emoji_to_pause(text)
 
     resolved_language = language
     if language == "auto":
@@ -150,11 +166,17 @@ def normalize_for_speech(
             ",": "，", ";": "；", ":": "：", "!": "！", "?": "？",
         }))
 
-    text = re.sub(r"[-‐‑‒–—―]+", "，", text)
-    text = re.sub(r"[\[\]{}()<>|\\/\"'“”‘’#^$]+", " ", text)
+    pause = "，" if resolved_language == "zh" else ","
+    text = re.sub(r"[-‐‑‒–—―]+", pause, text)
+    # Display-only boundaries must preserve a pause. Removing them as whitespace
+    # makes the later CJK whitespace pass glue both sides into one TTS phrase.
+    text = re.sub(r"[\[\]{}()<>|\\/\"“”‘’]+", pause, text)
+    text = re.sub(r"[#^$]+", " ", text)
     text = re.sub(r"[，,]{2,}", "，" if resolved_language == "zh" else ",", text)
     text = re.sub(r"\s+", " ", text)
     if resolved_language == "zh":
         text = re.sub(r"(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])", "", text)
     text = re.sub(r"\s*([,，。.!！?？;；:：、])\s*", r"\1", text)
+    text = re.sub(r"[,，]+(?=[。.!！?？;；:：、])", "", text)
+    text = re.sub(r"(?<=[。.!！?？;；:：、])[,，]+", "", text)
     return text.strip(" ,，")

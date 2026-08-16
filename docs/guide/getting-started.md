@@ -58,6 +58,7 @@ Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 - `vad_threshold`: lower hears quieter speech; the false-trigger-resistant default is `0.75`.
 - `min_speech_seconds`: candidates shorter than this are rejected; `0.35` is the default.
 - `min_silence_seconds`: lower commits faster but may split sentences; the conversational default is `2.0`, so thinking pauses do not emit an early Final.
+- `pre_roll_seconds`: prepends `0.5` seconds immediately before Silero's absolute segment start to SenseVoice Final, recovering quiet word onsets without duplicating detected speech.
 - `barge_in_min_chars`: number of non-space preview characters required to confirm interruption; `2` is the default. VAD alone never cancels playback or the Agent turn.
 - `accepted_final_languages`: defaults to `zh` and `en`; SenseVoice Japanese, Korean and Cantonese classifications are rejected before reaching DSH.
 - `min_final_chars`: rejects punctuation-only and one-character hallucinations such as noise decoded as `I.`; the default is `2`.
@@ -72,4 +73,4 @@ Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 
 The browser uses a two-stage context policy: one natural 48–96-character phrase may start TTS early, while every later delta is retained until Agent Final and submitted as one remaining context. Short answers therefore use one Qwen generation and long answers at most two.
 
-`muxiva.speech_text_normalizer` is a project Node Pack between the built-in streaming Markdown formatter and TTS. It removes emoji, bare URLs/domains, email addresses, link destinations, horizontal rules, dashes, slashes and residual display syntax while preserving useful link labels. It speaks Chinese years, integers, decimals and percentages deterministically. It uses the public Node Pack mechanism and requires no Muxiva Runtime change.
+`muxiva.speech_text_normalizer` is a project Node Pack between the built-in streaming Markdown formatter and TTS. It removes bare URLs/domains, email addresses, link destinations and residual display syntax while preserving useful link labels. Emoji, brackets, dashes and slashes become one prosodic boundary instead of silently gluing the surrounding words together. It speaks Chinese years, integers, decimals and percentages deterministically. It uses the public Node Pack mechanism and requires no Muxiva Runtime change.

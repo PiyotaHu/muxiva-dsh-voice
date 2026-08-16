@@ -6,6 +6,7 @@ import pathlib
 import sys
 import types
 import unittest
+from collections import deque
 
 
 if "muxiva" not in sys.modules:
@@ -83,6 +84,17 @@ class Numpy:
     def empty(_size, dtype=None):
         return []
 
+    @staticmethod
+    def concatenate(parts):
+        output = []
+        for part in parts:
+            output.extend(part)
+        return output
+
+    @staticmethod
+    def array(values, dtype=None, copy=False):
+        return list(values)
+
 
 class Vad:
     def __init__(self):
@@ -93,6 +105,44 @@ class Vad:
 
 
 class SherpaVadAsrTests(unittest.TestCase):
+    def test_final_utterance_recovers_half_second_before_silero_start(self):
+        node = module.SherpaVadAsr({"pre_roll_seconds": 0.5})
+        node.np = Numpy()
+        history = [0.0] * 4_800 + [0.02] * 19_200
+        node.audio_history = deque([(0, history)])
+        node.audio_history_start = 0
+        ctx = Context()
+
+        result = node._prepend_pre_roll(8_000, [0.9, 1.0], ctx)
+
+        self.assertEqual(result[:1_600], [0.0] * 1_600, "retain 100 ms before the weak onset")
+        self.assertEqual(result[1_600:4_800], [0.02] * 3_200)
+        self.assertEqual(result[-2:], [0.9, 1.0])
+        self.assertEqual(len(result), 4_802)
+        self.assertEqual(ctx.gauges["asr.pre_roll_candidate_samples"], 8_000)
+        self.assertEqual(ctx.gauges["asr.pre_roll_samples"], 4_800)
+        self.assertEqual(ctx.gauges["asr.pre_roll_ms"], 300.0)
+
+    def test_pre_roll_respects_trimmed_absolute_history_without_duplication(self):
+        node = module.SherpaVadAsr({"pre_roll_seconds": 0.5})
+        node.np = Numpy()
+        node.audio_history = deque([(15_500, [0.02] * 1_000)])
+        node.audio_history_start = 15_500
+
+        result = node._prepend_pre_roll(16_000, [0.7, 0.8])
+
+        self.assertEqual(result[:500], [0.02] * 500)
+        self.assertEqual(result[499:502], [0.02, 0.7, 0.8])
+
+    def test_pre_roll_drops_pure_room_silence(self):
+        node = module.SherpaVadAsr({"pre_roll_seconds": 0.5})
+        node.np = Numpy()
+        node.audio_history = deque([(0, [0.001] * 8_000)])
+
+        result = node._prepend_pre_roll(8_000, [0.7, 0.8])
+
+        self.assertEqual(result, [0.7, 0.8])
+
     def test_microphone_pause_rebuilds_all_streaming_state(self):
         node = module.SherpaVadAsr({})
         node.np = Numpy()

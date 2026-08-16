@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,9 @@ class SherpaVadAsr:
         self.vad_buffer = None
         self.vad_window_size = 512
         self.vad_offset = 0
+        self.audio_history = None
+        self.audio_history_start = 0
+        self.vad_samples_accepted = 0
         self.speaking = False
         self.muted = False
         self.barge_in_confirmed = False
@@ -87,6 +91,7 @@ class SherpaVadAsr:
         self.vad_window_size = vad_config.silero_vad.window_size
         self.vad = sherpa_onnx.VoiceActivityDetector(vad_config, buffer_size_in_seconds=60)
         self.vad_buffer = np.empty(0, dtype=np.float32)
+        self.audio_history = deque()
 
     def on_process(self, frame, ctx) -> None:
         if frame.sample_rate_hz != 16_000 or frame.channels != 1:
@@ -104,7 +109,9 @@ class SherpaVadAsr:
         self.vad_buffer = self.np.concatenate((self.vad_buffer, samples))
         window = self.vad_window_size
         while self.vad_offset + window <= len(self.vad_buffer):
-            self.vad.accept_waveform(self.vad_buffer[self.vad_offset:self.vad_offset + window])
+            accepted = self.vad_buffer[self.vad_offset:self.vad_offset + window]
+            self._remember_audio(accepted)
+            self.vad.accept_waveform(accepted)
             self.vad_offset += window
             detected = self.vad.is_speech_detected()
             if detected and not self.speaking:
@@ -120,6 +127,7 @@ class SherpaVadAsr:
                 # `front` is backed by the VAD queue; copy before `pop`
                 # invalidates that native storage.
                 utterance = self.np.array(segment.samples, dtype=self.np.float32, copy=True)
+                utterance = self._prepend_pre_roll(int(segment.start), utterance, ctx)
                 self.vad.pop()
                 self._commit(ctx, frame.sequence, utterance)
         if self.speaking:
@@ -142,10 +150,89 @@ class SherpaVadAsr:
         self.stream = self.recognizer.create_stream()
         self.vad_buffer = self.np.empty(0, dtype=self.np.float32)
         self.vad_offset = 0
+        self.audio_history = deque()
+        self.audio_history_start = 0
+        self.vad_samples_accepted = 0
         self.speaking = False
         self.barge_in_confirmed = False
         self.last_partial = ""
         ctx.publish_notification("muxiva.voice.asr.reset", {"reason": reason})
+
+    def _remember_audio(self, samples) -> None:
+        """Keep absolute VAD input history so a Final can recover word onsets."""
+
+        if len(samples) == 0:
+            return
+        chunk_start = self.vad_samples_accepted
+        self.audio_history.append((chunk_start, self.np.array(samples, dtype=self.np.float32, copy=True)))
+        self.vad_samples_accepted += len(samples)
+        pre_roll = max(0.0, float(self.config.get("pre_roll_seconds", 0.5)))
+        max_seconds = float(self.config.get("max_speech_seconds", 30.0))
+        silence = float(self.config.get("min_silence_seconds", 2.0))
+        limit = max(16_000, int((max_seconds + silence + pre_roll + 1.0) * 16_000))
+        keep_from = max(0, self.vad_samples_accepted - limit)
+        while self.audio_history and self.audio_history[0][0] + len(self.audio_history[0][1]) <= keep_from:
+            self.audio_history.popleft()
+        self.audio_history_start = self.audio_history[0][0] if self.audio_history else self.vad_samples_accepted
+
+    def _prepend_pre_roll(self, segment_start: int, utterance, ctx=None):
+        """Prepend audio before Silero's absolute start without duplicating speech."""
+
+        requested = max(0, int(float(self.config.get("pre_roll_seconds", 0.5)) * 16_000))
+        requested_start = max(0, segment_start - requested)
+        pieces = []
+        for chunk_start, chunk in self.audio_history:
+            chunk_end = chunk_start + len(chunk)
+            if chunk_end <= requested_start:
+                continue
+            if chunk_start >= segment_start:
+                break
+            begin = max(0, requested_start - chunk_start)
+            end = min(len(chunk), segment_start - chunk_start)
+            if end > begin:
+                pieces.append(chunk[begin:end])
+        candidate_samples = sum(len(piece) for piece in pieces)
+        prefix = self.np.concatenate(tuple(pieces)) if pieces else None
+        prefix = self._active_pre_roll(prefix) if prefix is not None else None
+        prefix_samples = len(prefix) if prefix is not None else 0
+        if ctx is not None:
+            ctx.set_gauge("asr.pre_roll_candidate_samples", candidate_samples)
+            ctx.set_gauge("asr.pre_roll_samples", prefix_samples)
+            ctx.set_gauge("asr.pre_roll_ms", round(prefix_samples / 16.0, 1))
+        if prefix_samples == 0:
+            return utterance
+        return self.np.concatenate((prefix, utterance))
+
+    @staticmethod
+    def _active_pre_roll(candidate):
+        """Drop leading room silence while retaining weak onset plus 100 ms pad."""
+
+        frame_size = 320  # 20 ms at 16 kHz
+        rms = []
+        for offset in range(0, len(candidate), frame_size):
+            frame = candidate[offset:offset + frame_size]
+            if len(frame) == 0:
+                continue
+            rms.append((sum(float(value) * float(value) for value in frame) / len(frame)) ** 0.5)
+        if not rms:
+            return candidate[:0]
+        peak = max(rms)
+        absolute_floor = 0.0025
+        if peak < absolute_floor:
+            return candidate[:0]
+        ordered = sorted(rms)
+        noise_floor = ordered[max(0, len(ordered) // 4 - 1)]
+        threshold = min(max(absolute_floor, noise_floor * 1.8, peak * 0.12), peak * 0.55)
+        first_active = None
+        for index, value in enumerate(rms):
+            following = rms[index + 1] if index + 1 < len(rms) else value
+            if value >= threshold and following >= threshold * 0.8:
+                first_active = index
+                break
+        if first_active is None:
+            return candidate[:0]
+        keep_frame = max(0, first_active - 5)
+        return candidate[keep_frame * frame_size:]
 
     def _commit(self, ctx, sequence: int, utterance) -> None:
         if not self.speaking:

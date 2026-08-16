@@ -8,7 +8,19 @@ from muxiva_voice_transport.speech_text import normalize_for_speech
 class SpeechTextNormalizerTest(unittest.TestCase):
     def test_strips_markdown_urls_and_emoji(self) -> None:
         source = "## 结果 🚀\n- **详情**见[文档](https://example.com) ✅"
-        self.assertEqual(normalize_for_speech(source), "结果详情见文档")
+        self.assertEqual(normalize_for_speech(source), "结果，详情见文档")
+
+    def test_emoji_and_closing_parenthesis_preserve_tts_pauses(self) -> None:
+        self.assertEqual(
+            normalize_for_speech("你好🙂世界（补充说明）继续。✅"),
+            "你好，世界，补充说明，继续。",
+        )
+
+    def test_display_boundaries_do_not_glue_english_words(self) -> None:
+        self.assertEqual(
+            normalize_for_speech("First🙂second (optional) next"),
+            "First,second,optional,next",
+        )
 
     def test_speaks_chinese_lists_dates_decimals_and_percentages(self) -> None:
         source = "1、2、3；2026年；版本 12.5；完成 80%。"
@@ -32,7 +44,7 @@ class SpeechTextNormalizerTest(unittest.TestCase):
             "---\n"
             "冷静——稳定 / 清晰 #"
         )
-        self.assertEqual(normalize_for_speech(source), "访问或，联系。冷静，稳定清晰")
+        self.assertEqual(normalize_for_speech(source), "访问或，联系。冷静，稳定，清晰")
 
     def test_keeps_markdown_link_label_but_never_speaks_its_address(self) -> None:
         self.assertEqual(

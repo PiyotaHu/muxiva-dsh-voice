@@ -85,6 +85,19 @@ def main() -> None:
         assert "语音助手" in chinese_final, chinese_final
 
         model = Path(".models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17")
+        with wave.open(str(model / "test_wavs/zh.wav"), "rb") as source:
+            assert source.getframerate() == 16_000 and source.getnchannels() == 1
+            chinese_onset = np.frombuffer(source.readframes(source.getnframes()), dtype=np.int16)
+        send_microphone(websocket, np.concatenate((
+            np.zeros(4_800, dtype=np.int16), chinese_onset, np.zeros(40_000, dtype=np.int16),
+        )))
+        onset_events = receive_turn(websocket)
+        onset_final = "".join(item["text"] for item in onset_events if item["type"] == "asr.final")
+        # The int8 model may choose the near-homophone 开放 instead of 开饭,
+        # but losing the onset would make the transcript start at 时间.
+        assert onset_final.startswith("开"), f"ASR lost the opening syllable: {onset_final}"
+        assert "时间" in onset_final, onset_final
+
         with wave.open(str(model / "test_wavs/en.wav"), "rb") as source:
             assert source.getframerate() == 16_000 and source.getnchannels() == 1
             english = np.frombuffer(source.readframes(source.getnframes()), dtype=np.int16)
@@ -97,6 +110,7 @@ def main() -> None:
         print(json.dumps({
             "ttsPcmBytes": sum(map(len, tts_chunks)),
             "asrFinalZh": chinese_final,
+            "asrOnsetZh": onset_final,
             "asrFinalEn": english_final,
             "events": kinds,
         }, ensure_ascii=False))

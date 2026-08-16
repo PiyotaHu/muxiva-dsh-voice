@@ -22,6 +22,7 @@ if (!graph.nodes.some(node => node.node_type === 'muxiva.qwen3_tts')) throw new 
 const vad = graph.nodes.find(node => node.node_type === 'muxiva.sherpa_vad_asr')
 if (!vad || vad.node_config.vad_threshold < 0.75 || vad.node_config.min_speech_seconds < 0.35) throw new Error('VAD false-trigger guardrails are missing')
 if (vad.node_config.min_silence_seconds < 2.0) throw new Error('conversational ASR final hold is missing')
+if (vad.node_config.pre_roll_seconds < 0.5) throw new Error('ASR onset pre-roll is missing')
 if (vad.node_config.barge_in_min_chars < 2) throw new Error('ASR-confirmed barge-in is not configured')
 if ('barge_in_vad_hold_ms' in vad.node_config) throw new Error('text-free VAD barge-in must remain disabled')
 if (JSON.stringify(vad.node_config.accepted_final_languages) !== JSON.stringify(['zh', 'en']) || vad.node_config.min_final_chars < 2) throw new Error('ASR language and hallucination gates are missing')
