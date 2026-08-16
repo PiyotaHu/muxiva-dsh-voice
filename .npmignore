@@ -4,3 +4,4 @@
 .models/
 .muxiva/venv/
 .muxiva/venv-unsupported-*/
+benchmarks/traces/

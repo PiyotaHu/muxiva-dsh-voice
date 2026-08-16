@@ -14,7 +14,7 @@ for (const required of ['lib/client.js', 'cordis.patch.yml', 'graph.json', 'mode
   if (!result.files.some(file => file.path === required)) throw new Error(`tarball missing ${required}`)
 }
 for (const file of result.files) {
-  if (file.path.includes('__pycache__') || /\.py[co]$/.test(file.path) || file.path.includes('/venv')) {
+  if (file.path.includes('__pycache__') || /\.py[co]$/.test(file.path) || file.path.includes('/venv') || file.path.startsWith('benchmarks/traces/')) {
     throw new Error(`tarball contains a generated environment artifact: ${file.path}`)
   }
 }

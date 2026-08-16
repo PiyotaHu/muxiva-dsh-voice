@@ -11,6 +11,6 @@
   "capability": "local.audio.ingress",
   "summary": "Receives bounded PCM16 microphone chunks from the DSH browser plugin over loopback WebSocket.",
   "tags": ["local", "websocket", "audio", "ingress"],
-  "ports": [{"name":"audio_out","direction":"output","frame_type":"audio","schema":{"encoding":"pcm_s16le","sample_rate_hz":16000,"channels":1,"frame_duration_ms":20,"streaming":true}},{"name":"signal_out","direction":"output","frame_type":"signal","schema":{"semantics":["source_pause","microphone_state"]}}],
+  "ports": [{"name":"audio_out","direction":"output","frame_type":"audio","schema":{"encoding":"pcm_s16le","sample_rate_hz":16000,"channels":1,"frame_duration_ms":20,"streaming":true}},{"name":"signal_out","direction":"output","frame_type":"signal","schema":{"semantics":["source_pause","microphone_state"]}},{"name":"event_out","direction":"output","frame_type":"event","schema":{"topics":["muxiva.voice.benchmark.audio_admitted"]}}],
   "config_schema": {"type":"object","properties":{},"additionalProperties":false}
 }

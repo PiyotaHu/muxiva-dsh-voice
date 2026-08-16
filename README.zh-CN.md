@@ -4,7 +4,7 @@
 
 麦克风、VAD、ASR、分句、TTS、播放和打断链路都留在 Mac 本机；DSH 继续负责有状态 Agent、工具、权限、会话和 Web 聊天记录。
 
-> 当前是 Alpha：源码联调路径已经建立。Muxiva 0.1.1 已发布 CPython 3.8–3.14 Wheel（包括 macOS universal2）；面向陌生用户的一条命令安装现在只剩 npm 发布门禁。
+> 当前是 Alpha：源码联调路径与 M1 Pro 无人值守认证已经完成。Muxiva 0.1.1 已发布 CPython 3.8–3.14 Wheel（包括 macOS universal2）。
 
 ## 源码快速开始
 
@@ -34,9 +34,9 @@ Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Tr
 两种模式都会把桥与 Runtime 输出追加到 `.muxiva/runtime.log`，无界面运行时可直接
 `tail -f .muxiva/runtime.log` 追踪启动失败、ASR/TTS 事件和 Node Host 错误。
 
-进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；浏览器不再注入 PCM，Muxiva Audio Source 进入 paused，并在恢复前重置 VAD/ASR 流。右侧小“结束”按钮才会关闭链路。Silero VAD 只产生候选，ASR 出现非空文字后才确认打断并清掉旧播放/TTS、取消旧 DSH Turn；空识别会回到聆听，不会卡在思考状态。
+进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；浏览器不再注入 PCM，Muxiva Audio Source 进入 paused，并在恢复前重置 VAD/ASR 流。右侧小“结束”按钮才会关闭链路。持续的高置信度 VAD 或更早出现的非空 ASR Partial 会确认打断，清掉旧播放/TTS 并取消旧 DSH Turn；空识别会回到聆听，不会卡在思考状态。
 
-默认端点等待 2 秒连续静音后才产生 ASR Final，允许自然的思考停顿；VAD 使用更严格的 `0.70` 阈值与 `350 ms` 最短语音来降低环境噪声误触发。TTS 默认使用 Qwen3-TTS 的 `Serena`——温暖、轻柔的普通话年轻女声。
+低延迟默认端点等待 450 ms 连续静音后产生 ASR Final，并使用 `0.70` VAD 阈值与 Silero 自带的最短语音门控。TTS 默认使用 Qwen3-TTS 的 `Serena`——温暖、轻柔的普通话年轻女声；有界实时 PCM 调度会限制浏览器播放队列的提前量。
 
 ## 边界
 
@@ -49,6 +49,7 @@ Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Tr
 
 模型安装完成后，可以运行 `npm run test:e2e`。它会启动真实的 8-Node Muxiva Graph，认证“中文文本 → normalizer → Qwen3-TTS 24 kHz PCM → 模拟麦克风 → Silero VAD → SenseVoice Final”的闭环，并另外验证英文识别。默认 TTS 是在 Apple Silicon 上通过 MLX 运行的 Qwen3-TTS 0.6B CustomVoice 8-bit，不包含云端 fallback。
 
-第一台性能认证机器是 16 GB MacBook Pro M1 Pro。延迟目标、严格的测量边界和每个
-Release 必须提交的版本化实测报告格式见[性能与验收](docs/guide/performance.md)。目标值
-不会冒充实测值；缺少对应性能报告及文档链接时，npm Release Workflow 会直接失败。
+第一台性能认证机器是 16 GB MacBook Pro M1 Pro：130/130 回合、30/30 次打断全部完成，
+TTS underrun 为零。完整延迟分布、资源用量、CER/WER 适用范围、复现命令和每个 Release
+必须提交的版本化实测报告见[性能与验收](docs/guide/performance.md)。缺少对应性能报告及
+文档链接时，npm Release Workflow 会直接失败。

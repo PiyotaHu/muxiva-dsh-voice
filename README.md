@@ -4,7 +4,7 @@ Local-first, full-duplex voice for the official [DeepSeek Harness](https://githu
 
 Your microphone, VAD, ASR, sentence scheduling, TTS, playback and interruption path stay on the Mac. DSH remains the stateful Agent harness and keeps its tools, sessions and Web transcript.
 
-> Alpha: the integration contract and source-checkout path are testable today. Muxiva 0.1.1 wheels are published for CPython 3.8–3.14, including macOS universal2; npm publication remains the final distribution gate.
+> Alpha: the integration contract, source-checkout path and unattended M1 Pro certification are complete. Muxiva 0.1.1 wheels are published for CPython 3.8–3.14, including macOS universal2.
 
 ## What runs where
 
@@ -54,18 +54,18 @@ explicit non-Studio form; `npm start` remains headless by default.
 Both modes append bridge and Runtime output to `.muxiva/runtime.log`; use
 `tail -f .muxiva/runtime.log` when diagnosing a headless session.
 
-Open the printed DSH URL, create or open a session, then select the large voice orb above the composer. Its halo follows input energy and the visible status moves through listening, hearing, thinking and speaking. Once connected, the large orb toggles microphone mute without stopping the WebSocket, AudioWorklet or Graph. Muting admits no PCM, explicitly pauses the Muxiva audio Source, and resets VAD/ASR before resume; the small **End** control performs a full shutdown. VAD onset is only a candidate: playback and the active Agent turn are cancelled only after ASR produces non-empty text. Empty detections return to listening instead of leaving the UI waiting.
+Open the printed DSH URL, create or open a session, then select the large voice orb above the composer. Its halo follows input energy and the visible status moves through listening, hearing, thinking and speaking. Once connected, the large orb toggles microphone mute without stopping the WebSocket, AudioWorklet or Graph. Muting admits no PCM, explicitly pauses the Muxiva audio Source, and resets VAD/ASR before resume; the small **End** control performs a full shutdown. Sustained high-confidence VAD or an earlier non-empty ASR partial confirms barge-in, cancels old playback and the active Agent turn; empty detections return to listening instead of leaving the UI waiting.
 
-The conversational defaults wait for 2 seconds of continuous silence before emitting ASR Final, and use a stricter `0.70` VAD threshold plus a `350 ms` minimum speech duration to suppress noise triggers. Qwen3-TTS uses `Serena`, its warm, gentle young Mandarin female voice, by default.
+The low-latency defaults wait for 450 ms of continuous silence before emitting ASR Final and use a `0.70` VAD threshold with Silero's minimum-speech gate. Qwen3-TTS uses `Serena`, its warm, gentle young Mandarin female voice, by default, while bounded real-time PCM pacing prevents the browser queue from growing without limit.
 
 ## Published release UX
 
 The public installation path is:
 
 ```bash
-dsh plugin --profile web add @muxiva/dsh-voice
-npx @muxiva/dsh-voice setup
-npx @muxiva/dsh-voice start
+dsh plugin --profile web add @muxiva/dsh-voice@alpha
+npx @muxiva/dsh-voice@alpha setup
+npx @muxiva/dsh-voice@alpha start
 ```
 
 The package is a native DSH Bundle (`dsh.bundle`) and a dual-face Web plugin (`dsh.client`). Discovery uses the GitHub [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic; DSH does not currently operate a centralized plugin marketplace.
@@ -90,9 +90,12 @@ python3 -m compileall -q python .muxiva/nodes
 
 # After setup/models: certifies Qwen3-TTS Chinese loopback and English ASR.
 npm run test:e2e
+
+# Deterministic release-grade workload (about 40 minutes on the M1 Pro).
+npm run benchmark:certify
 ```
 
-The first certification target is a MacBook Pro with M1 Pro. Latency budgets and the acceptance matrix live in [Performance](docs/guide/performance.md).
+The first M1 Pro certification completed 130/130 turns and 30/30 interruptions with zero TTS underruns. Latency distributions, resource use, CER/WER scope and reproduction commands live in [Performance](docs/guide/performance.md).
 
 ## License
 

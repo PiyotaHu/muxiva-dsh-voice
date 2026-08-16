@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 import muxiva
 from muxiva_voice_transport import client
@@ -12,6 +13,7 @@ class LocalWsAudioSource:
         self.sequence = 0
         self.bridge = None
         self.paused = False
+        self.pending_marker = None
 
     def on_prepare(self, _ctx=None):
         self.bridge = client("audio-source")
@@ -33,6 +35,14 @@ class LocalWsAudioSource:
                     ctx.increment_counter("ingress.control_invalid")
                     continue
                 kind = control.get("type")
+                if kind == "benchmark.audio.marker":
+                    marker_id = control.get("markerId")
+                    captured_ns = control.get("capturedNs")
+                    if isinstance(marker_id, str) and isinstance(captured_ns, int):
+                        self.pending_marker = (marker_id, captured_ns)
+                    else:
+                        ctx.increment_counter("benchmark.marker_invalid")
+                    continue
                 if kind in {"client.mute", "client.unmute", "client.stop"}:
                     self.paused = kind != "client.unmute"
                     signal_name = "muxiva.voice.microphone.muted" if self.paused else "muxiva.voice.microphone.unmuted"
@@ -48,6 +58,20 @@ class LocalWsAudioSource:
                 continue
             self.sequence += 1
             ctx.emit("audio_out", self._audio_frame(pcm, 16000, self.sequence))
+            if self.pending_marker is not None:
+                marker_id, captured_ns = self.pending_marker
+                self.pending_marker = None
+                ctx.emit("event_out", muxiva.EventFrame(
+                    "muxiva.voice.benchmark.audio_admitted",
+                    json.dumps({
+                        "markerId": marker_id,
+                        "capturedNs": captured_ns,
+                        "admittedNs": time.monotonic_ns(),
+                    }, separators=(",", ":")),
+                    source="muxiva.dsh.local_ws_audio_source",
+                    sequence=self.sequence,
+                ))
+                ctx.increment_counter("benchmark.markers_admitted")
             ctx.increment_counter("ingress.audio_frames")
         ctx.schedule_next_tick(10)
 

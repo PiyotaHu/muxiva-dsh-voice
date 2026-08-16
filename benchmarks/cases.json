@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "source": "macOS say system voices, generated locally and not redistributed",
+  "cases": [
+    {"id":"zh-01","language":"zh","voice":"Tingting","text":"你好，这是本地语音助手。","agentReply":"你好，很高兴和你进行本地语音对话。"},
+    {"id":"zh-02","language":"zh","voice":"Tingting","text":"请介绍一下实时语音处理。","agentReply":"实时语音处理需要兼顾延迟、准确率和稳定性。"},
+    {"id":"zh-03","language":"zh","voice":"Tingting","text":"今天的天气适合出去散步。","agentReply":"如果天气舒适，适当散步有助于放松身心。"},
+    {"id":"zh-04","language":"zh","voice":"Tingting","text":"请记住百分之二十五这个数字。","agentReply":"好的，我记住了百分之二十五。"},
+    {"id":"zh-05","language":"zh","voice":"Tingting","text":"我们正在测试语音识别准确率。","agentReply":"测试会记录识别结果和完整的延迟分布。"},
+    {"id":"zh-06","language":"zh","voice":"Tingting","text":"请在回答时保持自然和清晰。","agentReply":"好的，我会使用自然清晰的语气回答。"},
+    {"id":"en-01","language":"en","voice":"Samantha","text":"Hello this is a local voice assistant","agentReply":"Hello, the local voice pipeline is ready."},
+    {"id":"en-02","language":"en","voice":"Samantha","text":"Please measure the speech recognition latency","agentReply":"The benchmark records every latency boundary."},
+    {"id":"en-03","language":"en","voice":"Samantha","text":"The quick brown fox jumps over the lazy dog","agentReply":"That sentence contains every important sound."},
+    {"id":"en-04","language":"en","voice":"Samantha","text":"We are testing an interruptible conversation","agentReply":"You can interrupt the answer at any time."},
+    {"id":"en-05","language":"en","voice":"Samantha","text":"Local processing keeps the audio on this computer","agentReply":"Your audio remains inside the local pipeline."},
+    {"id":"en-06","language":"en","voice":"Samantha","text":"Please answer with a warm and natural voice","agentReply":"I will answer with a warm and natural voice."}
+  ]
+}

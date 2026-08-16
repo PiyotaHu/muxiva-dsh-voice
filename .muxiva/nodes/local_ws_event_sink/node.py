@@ -14,6 +14,7 @@ class LocalWsEventSink:
         "muxiva.voice.transcript.rejected": "asr.rejected",
         "muxiva.voice.tts.started": "tts.started",
         "muxiva.voice.tts.stopped": "tts.stopped",
+        "muxiva.voice.benchmark.audio_admitted": "benchmark.audio.admitted",
     }
 
     def __init__(self, config=None):

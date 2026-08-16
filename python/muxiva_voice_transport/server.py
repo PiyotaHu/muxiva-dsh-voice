@@ -74,7 +74,10 @@ class Router:
                     "client.mute", "client.unmute", "client.stop",
                 }:
                     self.to_node("text-source", message)
-                if value["type"] in {"client.mute", "client.unmute", "client.stop"}:
+                if value["type"] in {
+                    "client.mute", "client.unmute", "client.stop",
+                    "benchmark.audio.marker",
+                }:
                     print(f"[MUXIVA][VOICE][source.control] type={value['type']}", flush=True)
                     self.to_node("audio-source", message)
         finally:

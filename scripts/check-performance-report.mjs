@@ -17,6 +17,24 @@ const distributionNames = [
   'audioQueueAhead',
   'staleAudioAfterBargeIn',
 ]
+const budgets = {
+  alpha: {
+    browserCaptureToMuxivaFrame: 45,
+    speechOnsetToBargeIn: 180,
+    speechEndToAsrFinal: 750,
+    firstAgentTextToFirstTtsPcm: 900,
+    audioQueueAhead: 240,
+    staleAudioAfterBargeIn: 120,
+  },
+  release: {
+    browserCaptureToMuxivaFrame: 35,
+    speechOnsetToBargeIn: 140,
+    speechEndToAsrFinal: 550,
+    firstAgentTextToFirstTtsPcm: 650,
+    audioQueueAhead: 160,
+    staleAudioAfterBargeIn: 80,
+  },
+}
 
 function requireValue(condition, message) {
   if (!condition) throw new Error(message)
@@ -52,7 +70,16 @@ function validate(report, file) {
   requireValue(Number.isFinite(report.quality?.englishWer), at('quality.englishWer is required'))
   requireValue(Number.isInteger(report.quality?.ttsUnderruns), at('quality.ttsUnderruns is required'))
   requireValue(report.stability?.completedTurns >= 100, at('stability.completedTurns must be at least 100'))
+  requireValue(report.stability?.failedTurns === 0, at('failed turns fail certification'))
+  requireValue(report.stability?.droppedAudioFrames === 0, at('dropped audio frames fail certification'))
   requireValue(report.stability?.unboundedQueues === 0, at('unbounded queues fail certification'))
+  requireValue(report.quality?.ttsUnderruns === 0, at('TTS underruns fail certification'))
+  requireValue(report.system?.powerSource === 'ac', at('certification must run on AC power'))
+  const limits = report.release.includes('-') ? budgets.alpha : budgets.release
+  for (const [name, maximum] of Object.entries(limits)) {
+    requireValue(report.latencyMs?.[name]?.p95 <= maximum,
+      at(`latencyMs.${name}.p95 exceeds ${maximum} ms ${report.release.includes('-') ? 'alpha' : 'release'} budget`))
+  }
 }
 
 const files = (await readdir(resultsDirectory)).filter(file => file.endsWith('.json')).sort()

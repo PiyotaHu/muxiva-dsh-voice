@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "release": "0.1.0-alpha.1",
+  "generatedAt": "2026-08-16T02:31:53.236898+00:00",
+  "system": {
+    "machine": "MacBookPro18,3",
+    "chip": "Apple M1 Pro",
+    "memoryGb": 16.0,
+    "os": "macOS 26.5.2 (25F84)",
+    "powerSource": "ac"
+  },
+  "versions": {
+    "muxiva": "0.1.1",
+    "dshVoice": "0.1.0-alpha.1",
+    "deepseekHarness": "0.1.0-rc.5",
+    "node": "25.5.0",
+    "python": "3.13.12"
+  },
+  "modelLockSha256": "637a8d7fea988222c9b1451988c1a95a60f5ee1334e1f549bdc72eb70097f8c5",
+  "workload": {
+    "turns": 130,
+    "interruptions": 30,
+    "idleMinutes": 5.0,
+    "soakMinutes": 30.0,
+    "warmupTurns": 1
+  },
+  "latencyMs": {
+    "browserCaptureToMuxivaFrame": {
+      "samples": 130,
+      "p50": 8.026,
+      "p95": 15.387,
+      "p99": 16.499
+    },
+    "speechOnsetToBargeIn": {
+      "samples": 130,
+      "p50": 108.057,
+      "p95": 174.011,
+      "p99": 250.29
+    },
+    "speechEndToAsrFinal": {
+      "samples": 130,
+      "p50": 567.644,
+      "p95": 597.774,
+      "p99": 616.925
+    },
+    "firstAgentTextToFirstTtsPcm": {
+      "samples": 130,
+      "p50": 256.861,
+      "p95": 278.435,
+      "p99": 334.263
+    },
+    "audioQueueAhead": {
+      "samples": 10871,
+      "p50": 216.402,
+      "p95": 223.874,
+      "p99": 224.608
+    },
+    "staleAudioAfterBargeIn": {
+      "samples": 30,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0
+    }
+  },
+  "throughput": {
+    "asrFinalRealtimeFactor": {
+      "samples": 130,
+      "p50": 0.029,
+      "p95": 0.034,
+      "p99": 0.037
+    },
+    "ttsRealtimeFactor": {
+      "samples": 100,
+      "p50": 1.013,
+      "p95": 1.022,
+      "p99": 1.028
+    }
+  },
+  "resources": {
+    "coldStartMs": 2831.210125,
+    "warmStartMs": 2809.622375,
+    "idleCpuPercent": 17.507,
+    "activeCpuPercent": 20.667,
+    "peakRssMb": 2146.594,
+    "modelDiskMb": 2354.988
+  },
+  "quality": {
+    "mandarinCer": 0.09429,
+    "englishWer": 0.027368,
+    "ttsUnderruns": 0
+  },
+  "stability": {
+    "completedTurns": 130,
+    "failedTurns": 0,
+    "droppedAudioFrames": 0,
+    "lateResultsDiscarded": 0,
+    "unboundedQueues": 0
+  },
+  "notes": [
+    "Unattended deterministic loopback certification; no cloud audio service was used.",
+    "ASR fixtures were generated locally with macOS say voices Tingting and Samantha and were not committed.",
+    "CER/WER describe the synthetic fixture corpus and are not presented as real-human microphone accuracy.",
+    "Capture latency uses a test-only monotonic marker acknowledged when the next PCM chunk becomes a Muxiva AudioFrame.",
+    "Raw trace: benchmarks/traces/certify-1786844554.jsonl (local artifact, intentionally ignored by Git)."
+  ]
+}

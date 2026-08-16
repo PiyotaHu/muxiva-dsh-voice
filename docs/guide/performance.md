@@ -1,11 +1,14 @@
 # Performance, measured results, and acceptance
 
-The first certification machine is a MacBook Pro M1 Pro, 16 GB RAM, macOS, using the built-in microphone and speakers.
+The first certification host is a MacBook Pro M1 Pro with 16 GB RAM. Automated
+certification drives the real local WebSocket, Muxiva Graph, Silero, SenseVoice
+and Qwen3-TTS path with deterministic, locally generated PCM; it does not claim
+to measure room acoustics or a particular microphone.
 
 ## Published measured results
 
-No certified release report has been published yet. The numbers in the budget
-table below are acceptance targets, not measurements.
+The complete immutable report contains p50/p95/p99 distributions, resource use,
+quality, stability, exact versions and the model-lock digest.
 
 Every npm release must add at least one immutable report under
 [`benchmarks/results/`](../../benchmarks/results/), and this page must link that
@@ -14,7 +17,26 @@ report or the documentation link is missing.
 
 | Release | Machine | Report | Status |
 | --- | --- | --- | --- |
-| — | MacBook Pro M1 Pro, 16 GB | — | Certification pending |
+| 0.1.0-alpha.1 | MacBook Pro M1 Pro, 16 GB | [JSON](../../benchmarks/results/v0.1.0-alpha.1-m1-pro.json) | Alpha passed |
+
+### 0.1.0-alpha.1 measured summary
+
+| Metric | p50 | p95 | p99 |
+| --- | ---: | ---: | ---: |
+| Capture → Muxiva Frame | 8.0 ms | 15.4 ms | 16.5 ms |
+| Speech onset → barge-in | 108.1 ms | 174.0 ms | 250.3 ms |
+| Speech end → ASR Final | 567.6 ms | 597.8 ms | 616.9 ms |
+| Agent text → first TTS PCM | 256.9 ms | 278.4 ms | 334.3 ms |
+| Audio queue ahead | 216.4 ms | 223.9 ms | 224.6 ms |
+| Stale audio after barge-in | 0.0 ms | 0.0 ms | 0.0 ms |
+
+The run completed 130/130 turns and 30/30 interruptions, followed by five
+minutes of idle listening and a 30-minute soak. It observed zero dropped audio
+frames, zero TTS underruns and zero stale audio after interruption. Mandarin CER
+was 9.43% and English WER was 2.74% on the synthetic `say` corpus. Those error
+rates are repeatable regression signals, not estimates of real-human microphone
+accuracy. Peak process-tree RSS was 2146.6 MiB and model storage was 2355.0 MiB;
+see the JSON for CPU, startup and real-time-factor distributions.
 
 Do not publish a hand-selected “best run.” The report contains p50/p95/p99 over
 the complete accepted workload and is tied to the exact Muxiva, DSH, plugin, OS,
@@ -53,13 +75,35 @@ Large raw traces belong on the matching GitHub Release. The repository report
 contains aggregate statistics only and must not contain audio, transcripts,
 credentials, or workspace data.
 
+## Reproduce the certification
+
+After `npm run doctor -- --fix` and `npm run models`, run:
+
+```bash
+# Short local smoke run; its report is intentionally not releasable.
+npm run benchmark:quick
+
+# Release workload: 100 turns, 30 interruptions, 5-minute idle, 30-minute soak.
+npm run benchmark:certify
+
+# Validate every committed report and require this package version.
+node scripts/check-performance-report.mjs --require-version 0.1.0-alpha.1
+```
+
+The harness synthesizes its Chinese and English fixtures locally with the macOS
+Tingting and Samantha voices, streams 16 kHz PCM at real-time cadence, and sends
+agent text through the actual Qwen3-TTS path. Generated fixtures and raw per-turn
+traces are ignored by Git. A separate human acceptance pass with the built-in
+microphone remains necessary for room noise, echo cancellation and perceived
+voice quality.
+
 ## Measurement boundaries
 
 - **Browser capture → Muxiva Frame:** `AudioWorklet` capture timestamp to the
   corresponding admitted audio Frame.
 - **Speech onset → barge-in Signal:** first speech sample in the calibrated
-  fixture to ASR-confirmed `muxiva.voice.barge_in.confirmed` admission. Raw VAD
-  onset is deliberately excluded because it cannot interrupt a turn by itself.
+  fixture to sustained high-confidence VAD or earlier non-empty ASR partial
+  admission as `muxiva.voice.barge_in.confirmed`.
 - **Speech end → ASR Final:** last speech sample to the Final accepted for the
   DSH turn; preview text does not count.
 - **First DSH text → first TTS PCM:** first complete Agent sentence admitted to

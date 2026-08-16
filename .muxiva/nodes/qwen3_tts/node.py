@@ -7,6 +7,7 @@ import queue
 import sys
 import threading
 import gc
+import time
 from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any, Callable
@@ -35,6 +36,8 @@ class Qwen3Tts:
         self.worker = None
         self.model_dir = None
         self.np = None
+        self.deferred_result = None
+        self.next_audio_emit_ns = 0
 
     def on_prepare(self, _ctx=None) -> None:
         try:
@@ -91,10 +94,14 @@ class Qwen3Tts:
             return
 
         for _ in range(32):
-            try:
-                item = self.results.get_nowait()
-            except queue.Empty:
-                break
+            if self.deferred_result is not None:
+                item = self.deferred_result
+                self.deferred_result = None
+            else:
+                try:
+                    item = self.results.get_nowait()
+                except queue.Empty:
+                    break
             generation, sequence, kind, value = item
             if generation != self._current_generation():
                 continue
@@ -103,7 +110,14 @@ class Qwen3Tts:
                     self.pending = max(0, self.pending - 1)
                 raise RuntimeError(f"Qwen3-TTS synthesis failed: {value}") from value
             if kind == "audio" and isinstance(value, bytes):
+                now_ns = time.monotonic_ns()
+                lookahead_ns = int(self.config.get("playback_lookahead_ms", 160)) * 1_000_000
+                if self.next_audio_emit_ns > now_ns + lookahead_ns:
+                    self.deferred_result = item
+                    break
                 ctx.emit("audio_out", self._audio_frame(value, sequence))
+                duration_ns = len(value) // 2 * 1_000_000_000 // self.SAMPLE_RATE
+                self.next_audio_emit_ns = max(now_ns, self.next_audio_emit_ns) + duration_ns
             elif kind == "done":
                 with self.lock:
                     self.pending = max(0, self.pending - 1)
@@ -115,8 +129,12 @@ class Qwen3Tts:
 
         with self.lock:
             pending = self.pending
-        if pending > 0 or not self.results.empty() or not self.jobs.empty():
-            ctx.schedule_next_tick(10)
+        if pending > 0 or self.deferred_result is not None or not self.results.empty() or not self.jobs.empty():
+            delay_ms = 10
+            if self.deferred_result is not None:
+                lookahead_ns = int(self.config.get("playback_lookahead_ms", 160)) * 1_000_000
+                delay_ms = max(1, (self.next_audio_emit_ns - lookahead_ns - time.monotonic_ns() + 999_999) // 1_000_000)
+            ctx.schedule_next_tick(int(delay_ms))
 
     def on_signal(self, signal, _ctx=None) -> None:
         if getattr(signal, "name", "") in {"muxiva.voice.barge_in.confirmed", "muxiva.voice.speech.started"}:
@@ -125,6 +143,8 @@ class Qwen3Tts:
                 self.pending = 0
             self._drain(self.jobs)
             self._drain(self.results)
+            self.deferred_result = None
+            self.next_audio_emit_ns = 0
 
     def _work(self) -> None:
         model = None

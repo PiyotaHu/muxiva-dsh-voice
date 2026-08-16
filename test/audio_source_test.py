@@ -15,8 +15,17 @@ class AudioFrame:
         self.sequence = sequence if sequence else (args[-1] if args else 0)
 
 
+class EventFrame:
+    def __init__(self, topic, payload="", source="", sequence=0, **_kwargs):
+        self.topic = topic
+        self.payload = payload
+        self.source = source
+        self.sequence = sequence
+
+
 muxiva = types.ModuleType("muxiva")
 muxiva.AudioFrame = AudioFrame
+muxiva.EventFrame = EventFrame
 transport = types.ModuleType("muxiva_voice_transport")
 transport.client = lambda _role: None
 previous_transport = sys.modules.get("muxiva_voice_transport")
@@ -69,6 +78,27 @@ class Context:
 
 
 class AudioSourceTests(unittest.TestCase):
+    def test_benchmark_marker_is_acknowledged_on_the_next_admitted_audio_frame(self):
+        node = module.LocalWsAudioSource()
+        node.bridge = Bridge([
+            '{"type":"benchmark.audio.marker","markerId":"turn-7","capturedNs":123456}',
+            b"\x01\x00" * 320,
+        ])
+        ctx = Context()
+
+        node.on_process(None, ctx)
+
+        audio = [frame for port, frame in ctx.emissions if port == "audio_out"]
+        events = [frame for port, frame in ctx.emissions if port == "event_out"]
+        self.assertEqual(len(audio), 1)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].topic, "muxiva.voice.benchmark.audio_admitted")
+        payload = __import__("json").loads(events[0].payload)
+        self.assertEqual(payload["markerId"], "turn-7")
+        self.assertEqual(payload["capturedNs"], 123456)
+        self.assertGreaterEqual(payload["admittedNs"], 123456)
+        self.assertEqual(ctx.counters["benchmark.markers_admitted"], 1)
+
     def test_pause_is_owned_by_source_and_drops_pcm_until_resume(self):
         node = module.LocalWsAudioSource()
         node.bridge = Bridge([

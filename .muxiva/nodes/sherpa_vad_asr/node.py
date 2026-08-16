@@ -23,6 +23,7 @@ class SherpaVadAsr:
         self.vad_window_size = 512
         self.vad_offset = 0
         self.speaking = False
+        self.speaking_samples = 0
         self.muted = False
         self.barge_in_confirmed = False
         self.last_partial = ""
@@ -109,6 +110,7 @@ class SherpaVadAsr:
             detected = self.vad.is_speech_detected()
             if detected and not self.speaking:
                 self.speaking = True
+                self.speaking_samples = 0
                 self.barge_in_confirmed = False
                 self.last_partial = ""
                 ctx.increment_counter("vad.candidates")
@@ -123,6 +125,7 @@ class SherpaVadAsr:
                 self.vad.pop()
                 self._commit(ctx, frame.sequence, utterance)
         if self.speaking:
+            self._advance_barge_in(ctx, frame.sequence, len(samples))
             self._preview(ctx, frame.sequence, partial)
         if self.vad_offset > window * 20:
             self.vad_buffer = self.vad_buffer[self.vad_offset - window * 4:]
@@ -143,6 +146,7 @@ class SherpaVadAsr:
         self.vad_buffer = self.np.empty(0, dtype=self.np.float32)
         self.vad_offset = 0
         self.speaking = False
+        self.speaking_samples = 0
         self.barge_in_confirmed = False
         self.last_partial = ""
         ctx.publish_notification("muxiva.voice.asr.reset", {"reason": reason})
@@ -196,6 +200,14 @@ class SherpaVadAsr:
         minimum = int(self.config.get("barge_in_min_chars", 1))
         if len(partial.replace(" ", "")) >= minimum:
             self._confirm_barge_in(ctx, sequence, partial, "partial")
+
+    def _advance_barge_in(self, ctx, sequence: int, samples: int) -> None:
+        if self.barge_in_confirmed:
+            return
+        self.speaking_samples += samples
+        hold_ms = int(self.config.get("barge_in_vad_hold_ms", 0))
+        if self.speaking_samples * 1000 >= hold_ms * 16_000:
+            self._confirm_barge_in(ctx, sequence, "", "vad_hold")
 
     def _confirm_barge_in(self, ctx, sequence: int, text: str, stage: str) -> None:
         if self.barge_in_confirmed:

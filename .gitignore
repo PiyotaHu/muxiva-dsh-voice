@@ -5,6 +5,8 @@
 .muxiva/venv-unsupported-*/
 .muxiva/cache/
 .muxiva/runtime.log
+.muxiva/benchmark-fixtures/
+benchmarks/traces/
 *.partial
 *.tgz
 __pycache__/

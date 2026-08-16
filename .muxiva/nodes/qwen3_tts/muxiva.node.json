@@ -25,7 +25,8 @@
       "language": {"type":"string","enum":["Auto","Chinese","English"],"default":"Auto"},
       "instruct": {"type":"string","maxLength":512,"default":"用温柔、自然、亲切的年轻女性声音说话，语速舒缓，语调柔和，使用标准普通话，不要夸张。"},
       "streaming_interval": {"type":"number","minimum":0.16,"maximum":2.0,"default":0.32},
-      "pcm_chunk_ms": {"type":"integer","minimum":20,"maximum":100,"default":40}
+      "pcm_chunk_ms": {"type":"integer","minimum":20,"maximum":100,"default":40},
+      "playback_lookahead_ms": {"type":"integer","minimum":80,"maximum":240,"default":160}
     },
     "additionalProperties": false
   }
