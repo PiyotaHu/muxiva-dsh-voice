@@ -12,7 +12,7 @@ Client controls:
 | `agent.delta` | `text` | One complete sentence or bounded speech chunk. |
 | `agent.final` | `text` | Flush the final tail. |
 | `agent.cancel` | `reason` | Invalidate current TTS generation. |
-| `client.mute` / `client.unmute` | — | Change microphone state without tearing down the audio transport. Muted worklet frames are replaced with silence. |
+| `client.mute` / `client.unmute` | — | Pause/resume microphone admission without tearing down the Web Audio or WebSocket transport. No PCM is admitted while paused; the audio Source resets VAD/ASR state at both boundaries. |
 | `client.stop` | — | Stop and drain the local session. |
 
 Server controls:

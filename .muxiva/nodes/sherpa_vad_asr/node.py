@@ -23,6 +23,7 @@ class SherpaVadAsr:
         self.vad_window_size = 512
         self.vad_offset = 0
         self.speaking = False
+        self.muted = False
         self.barge_in_confirmed = False
         self.last_partial = ""
 
@@ -90,6 +91,9 @@ class SherpaVadAsr:
     def on_process(self, frame, ctx) -> None:
         if frame.sample_rate_hz != 16_000 or frame.channels != 1:
             raise ValueError("Sherpa VAD/ASR input must be mono PCM16 at 16 kHz")
+        if self.muted:
+            ctx.increment_counter("input.audio_frames_dropped_muted")
+            return
         samples = self.np.frombuffer(frame.data, dtype=self.np.int16).astype(self.np.float32) / 32768.0
         ctx.increment_counter("input.audio_frames")
         ctx.set_gauge("input.audio_peak_pcm16", int(self.np.max(self.np.abs(samples)) * 32768) if len(samples) else 0)
@@ -123,6 +127,25 @@ class SherpaVadAsr:
         if self.vad_offset > window * 20:
             self.vad_buffer = self.vad_buffer[self.vad_offset - window * 4:]
             self.vad_offset = window * 4
+
+    def on_signal(self, signal, ctx) -> None:
+        name = getattr(signal, "name", "")
+        if name not in {"muxiva.voice.microphone.muted", "muxiva.voice.microphone.unmuted"}:
+            return
+        self.muted = name.endswith(".muted")
+        self._reset_decoder(ctx, "microphone_muted" if self.muted else "microphone_unmuted")
+        ctx.increment_counter("asr.microphone_state_resets")
+        ctx.set_gauge("microphone.muted", 1 if self.muted else 0)
+
+    def _reset_decoder(self, ctx, reason: str) -> None:
+        self.vad.reset()
+        self.stream = self.recognizer.create_stream()
+        self.vad_buffer = self.np.empty(0, dtype=self.np.float32)
+        self.vad_offset = 0
+        self.speaking = False
+        self.barge_in_confirmed = False
+        self.last_partial = ""
+        ctx.publish_notification("muxiva.voice.asr.reset", {"reason": reason})
 
     def _commit(self, ctx, sequence: int, utterance) -> None:
         if not self.speaking:

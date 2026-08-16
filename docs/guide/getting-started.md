@@ -39,7 +39,9 @@ Both modes persist supervisor, bridge, Runtime and Node Host output in
 
 After connection, selecting the large orb toggles microphone mute/unmute while keeping the
 AudioWorklet, WebSocket and Graph alive. Use the small **End** button only when you want to
-tear down the local voice session.
+tear down the local voice session. While muted, the browser admits no PCM and the Muxiva
+audio Source remains explicitly paused. Resume resets Silero and the streaming ASR decoder
+before accepting a new utterance, so audio on the two sides of a mute boundary is never joined.
 
 Before opening DSH, you can certify the complete local model path without a cloud model or microphone:
 

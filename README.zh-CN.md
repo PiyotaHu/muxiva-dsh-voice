@@ -34,7 +34,7 @@ Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Tr
 两种模式都会把桥与 Runtime 输出追加到 `.muxiva/runtime.log`，无界面运行时可直接
 `tail -f .muxiva/runtime.log` 追踪启动失败、ASR/TTS 事件和 Node Host 错误。
 
-进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；右侧小“结束”按钮才会关闭链路。Silero VAD 只产生候选，ASR 出现非空文字后才确认打断并清掉旧播放/TTS、取消旧 DSH Turn；空识别会回到聆听，不会卡在思考状态。
+进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；浏览器不再注入 PCM，Muxiva Audio Source 进入 paused，并在恢复前重置 VAD/ASR 流。右侧小“结束”按钮才会关闭链路。Silero VAD 只产生候选，ASR 出现非空文字后才确认打断并清掉旧播放/TTS、取消旧 DSH Turn；空识别会回到聆听，不会卡在思考状态。
 
 ## 边界
 

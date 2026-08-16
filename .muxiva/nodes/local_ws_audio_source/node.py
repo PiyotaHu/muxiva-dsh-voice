@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import muxiva
 from muxiva_voice_transport import client
 
@@ -9,25 +11,44 @@ class LocalWsAudioSource:
         self.config = config or {}
         self.sequence = 0
         self.bridge = None
+        self.paused = False
 
     def on_prepare(self, _ctx=None):
         self.bridge = client("audio-source")
 
     def on_process(self, _frame, ctx):
-        emitted = 0
-        while emitted < 8:
+        processed = 0
+        while processed < 8:
             try:
                 pcm = self.bridge.recv()
             except Exception:
                 raise
             if pcm is None:
                 break
+            processed += 1
+            if isinstance(pcm, str):
+                try:
+                    control = json.loads(pcm)
+                except json.JSONDecodeError:
+                    ctx.increment_counter("ingress.control_invalid")
+                    continue
+                kind = control.get("type")
+                if kind in {"client.mute", "client.unmute", "client.stop"}:
+                    self.paused = kind != "client.unmute"
+                    signal_name = "muxiva.voice.microphone.muted" if self.paused else "muxiva.voice.microphone.unmuted"
+                    ctx.emit_signal(signal_name, {"source": "muxiva.dsh.local_ws_audio_source", "paused": self.paused})
+                    ctx.increment_counter("ingress.pause_transitions")
+                    ctx.set_gauge("ingress.paused", 1 if self.paused else 0)
+                    ctx.publish_notification("muxiva.voice.audio_source.state", {"paused": self.paused})
+                continue
             if not isinstance(pcm, bytes):
+                continue
+            if self.paused:
+                ctx.increment_counter("ingress.audio_frames_dropped_paused")
                 continue
             self.sequence += 1
             ctx.emit("audio_out", self._audio_frame(pcm, 16000, self.sequence))
             ctx.increment_counter("ingress.audio_frames")
-            emitted += 1
         ctx.schedule_next_tick(10)
 
     @staticmethod

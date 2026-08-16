@@ -22,6 +22,7 @@
     {"id":"vad-cancel-tts","from":{"node_id":"local-vad-asr","port":"signal_out"},"to":{"node_id":"local-qwen3-tts","port":"signal_in"},"frame_type":"signal","queue_policy":{"capacity":8,"overflow":"drop_oldest"}},
     {"id":"vad-cancel-playback","from":{"node_id":"local-vad-asr","port":"signal_out"},"to":{"node_id":"browser-speaker","port":"signal_in"},"frame_type":"signal","queue_policy":{"capacity":8,"overflow":"drop_oldest"}},
     {"id":"client-cancel-tts","from":{"node_id":"dsh-agent-text","port":"signal_out"},"to":{"node_id":"local-qwen3-tts","port":"signal_in"},"frame_type":"signal","queue_policy":{"capacity":8,"overflow":"drop_oldest"}},
-    {"id":"client-cancel-playback","from":{"node_id":"dsh-agent-text","port":"signal_out"},"to":{"node_id":"browser-speaker","port":"signal_in"},"frame_type":"signal","queue_policy":{"capacity":8,"overflow":"drop_oldest"}}
+    {"id":"client-cancel-playback","from":{"node_id":"dsh-agent-text","port":"signal_out"},"to":{"node_id":"browser-speaker","port":"signal_in"},"frame_type":"signal","queue_policy":{"capacity":8,"overflow":"drop_oldest"}},
+    {"id":"microphone-source-state-to-asr","from":{"node_id":"browser-mic","port":"signal_out"},"to":{"node_id":"local-vad-asr","port":"signal_in"},"frame_type":"signal","queue_policy":{"capacity":8,"overflow":"drop_oldest"}}
   ]
 }

@@ -76,7 +76,54 @@ class Recognizer:
         return Stream()
 
 
+class Numpy:
+    float32 = "float32"
+
+    @staticmethod
+    def empty(_size, dtype=None):
+        return []
+
+
+class Vad:
+    def __init__(self):
+        self.resets = 0
+
+    def reset(self):
+        self.resets += 1
+
+
 class SherpaVadAsrTests(unittest.TestCase):
+    def test_microphone_pause_rebuilds_all_streaming_state(self):
+        node = module.SherpaVadAsr({})
+        node.np = Numpy()
+        node.vad = Vad()
+        node.recognizer = Recognizer()
+        node.stream = object()
+        node.vad_buffer = [1, 2, 3]
+        node.vad_offset = 99
+        node.speaking = True
+        node.barge_in_confirmed = True
+        node.last_partial = "残留"
+        ctx = Context()
+
+        node.on_signal(types.SimpleNamespace(name="muxiva.voice.microphone.muted"), ctx)
+
+        self.assertTrue(node.muted)
+        self.assertEqual(node.vad.resets, 1)
+        self.assertIsInstance(node.stream, Stream)
+        self.assertEqual(node.vad_buffer, [])
+        self.assertEqual(node.vad_offset, 0)
+        self.assertFalse(node.speaking)
+        self.assertFalse(node.barge_in_confirmed)
+        self.assertEqual(node.last_partial, "")
+        self.assertEqual(ctx.counters["asr.microphone_state_resets"], 1)
+        self.assertEqual(ctx.gauges["microphone.muted"], 1)
+
+        node.on_signal(types.SimpleNamespace(name="muxiva.voice.microphone.unmuted"), ctx)
+        self.assertFalse(node.muted)
+        self.assertEqual(node.vad.resets, 2)
+        self.assertEqual(ctx.gauges["microphone.muted"], 0)
+
     def test_vad_candidate_does_not_interrupt_until_asr_has_text(self):
         node = module.SherpaVadAsr({"barge_in_min_chars": 1})
         ctx = Context()

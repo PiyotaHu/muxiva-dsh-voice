@@ -55,6 +55,12 @@ def main() -> None:
             microphone,
             np.zeros(24_000, dtype=np.int16),
         ))
+        websocket.send(json.dumps({"version": "muxiva.dsh.voice/v1", "type": "client.mute"}))
+        send_microphone(websocket, microphone)
+        muted_events = receive_available(websocket, 0.75)
+        assert not any(item["type"].startswith(("speech.", "asr.")) for item in muted_events), muted_events
+        websocket.send(json.dumps({"version": "muxiva.dsh.voice/v1", "type": "client.unmute"}))
+        time.sleep(0.1)
         send_microphone(websocket, microphone)
 
         voice_events = receive_turn(websocket)
@@ -111,6 +117,19 @@ def receive_turn(websocket) -> list[dict]:
                 # segments. Treat all finals in the same quiet window as one turn.
                 quiet_deadline = time.monotonic() + 1.0
     raise AssertionError(events)
+
+
+def receive_available(websocket, duration: float) -> list[dict]:
+    events: list[dict] = []
+    deadline = time.monotonic() + duration
+    while time.monotonic() < deadline:
+        try:
+            message = websocket.recv(timeout=min(0.1, max(0.01, deadline - time.monotonic())))
+        except TimeoutError:
+            continue
+        if isinstance(message, str):
+            events.append(json.loads(message))
+    return events
 
 
 if __name__ == "__main__":
