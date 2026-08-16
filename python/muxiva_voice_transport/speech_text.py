@@ -12,7 +12,17 @@ _FENCE = re.compile(r"```.*?```|~~~.*?~~~", re.DOTALL)
 _IMAGE = re.compile(r"!\[([^]]*)]\([^)]*\)")
 _LINK = re.compile(r"\[([^]]+)]\([^)]*\)")
 _HTML = re.compile(r"<[^>]+>")
-_URL = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
+_URL = re.compile(
+    r"(?:https?|ftp)://[^\s<>()\[\]{}\"',;!?，。！？；：、]+|"
+    r"www\.[^\s<>()\[\]{}\"',;!?，。！？；：、]+",
+    re.IGNORECASE,
+)
+_EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+_DOMAIN = re.compile(
+    r"(?<![@\w])(?:[A-Z0-9-]+\.)+(?:com|cn|net|org|io|ai|dev|app|co|me|tech)"
+    r"(?:/[^\s<>()\[\]{}\"',;!?，。！？；：、]*)?",
+    re.IGNORECASE,
+)
 _YEAR = re.compile(r"(?<!\d)(\d{4})\s*年")
 _PERCENT = re.compile(r"(?<![A-Za-z])(-?\d+(?:\.\d+)?)\s*%")
 _NUMBER = re.compile(r"(?<![A-Za-z])(-?\d[\d,]*(?:\.\d+)?)(?![A-Za-z])")
@@ -120,8 +130,11 @@ def normalize_for_speech(
     text = _IMAGE.sub(lambda match: f" {match.group(1)} ", text)
     text = _LINK.sub(lambda match: match.group(1), text)
     text = _URL.sub(" ", text)
+    text = _EMAIL.sub(" ", text)
+    text = _DOMAIN.sub(" ", text)
     text = _HTML.sub(" ", text)
     text = re.sub(r"`([^`]*)`", r"\1", text)
+    text = re.sub(r"(?m)^\s*[-‐‑‒–—―_=]{2,}\s*$", " ", text)
     text = re.sub(r"(?m)^\s{0,3}(?:#{1,6}|>|[-+*]|\d+[.)])\s+", "", text)
     text = re.sub(r"[*_~]{1,3}", "", text)
     text = "".join(character for character in text if not _is_emoji(character))
@@ -133,11 +146,13 @@ def normalize_for_speech(
         text = _zh_numbers(text)
         text = text.translate(str.maketrans({
             "&": "和", "+": "加", "=": "等于", "@": "艾特",
-            "℃": "摄氏度", "°": "度", "#": "井号",
+            "℃": "摄氏度", "°": "度",
             ",": "，", ";": "；", ":": "：", "!": "！", "?": "？",
         }))
 
-    text = re.sub(r"[\[\]{}<>|\\]", " ", text)
+    text = re.sub(r"[-‐‑‒–—―]+", "，", text)
+    text = re.sub(r"[\[\]{}()<>|\\/\"'“”‘’#^$]+", " ", text)
+    text = re.sub(r"[，,]{2,}", "，" if resolved_language == "zh" else ",", text)
     text = re.sub(r"\s+", " ", text)
     if resolved_language == "zh":
         text = re.sub(r"(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])", "", text)

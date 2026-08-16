@@ -26,6 +26,20 @@ class SpeechTextNormalizerTest(unittest.TestCase):
             "已完成。代码已经生成，请在聊天窗口查看。请查看。",
         )
 
+    def test_removes_bare_domains_emails_rules_dashes_and_slashes(self) -> None:
+        source = (
+            "访问 example.com/guide 或 https://docs.example.org/a-b，联系 hi@example.com。\n"
+            "---\n"
+            "冷静——稳定 / 清晰 #"
+        )
+        self.assertEqual(normalize_for_speech(source), "访问或，联系。冷静，稳定清晰")
+
+    def test_keeps_markdown_link_label_but_never_speaks_its_address(self) -> None:
+        self.assertEqual(
+            normalize_for_speech("请查看[安装文档](https://example.com/install-guide)。"),
+            "请查看安装文档。",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

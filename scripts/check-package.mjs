@@ -34,6 +34,7 @@ if (!client.includes("this.send(muted ? 'client.mute' : 'client.unmute')")) thro
 if (!client.includes("if (!muted && this.socket?.readyState === WebSocket.OPEN)")) throw new Error('muted browser audio must not be admitted')
 if (client.includes("new ArrayBuffer(event.data.pcm.byteLength)")) throw new Error('mute must pause the Source instead of injecting zero PCM')
 if (!client.includes("message.type === 'asr.rejected'")) throw new Error('empty ASR recovery is missing')
-if (!client.includes('this.minimumChunkChars = 36')) throw new Error('prosody-preserving TTS phrase buffering is missing')
+if (!client.includes('this.minimumEarlyChars = 48') || !client.includes('this.earlyChunkSent = true')) throw new Error('bounded two-stage TTS context policy is missing')
+if (!client.includes("this.send('agent.final'")) throw new Error('remaining-context TTS handoff is missing')
 if (!graph.edges.some(edge => edge.id === 'microphone-source-state-to-asr')) throw new Error('Source pause boundary is not routed to VAD/ASR')
 console.log('package contracts verified')

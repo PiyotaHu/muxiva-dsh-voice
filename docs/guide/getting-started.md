@@ -70,4 +70,6 @@ Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 - `pcm_chunk_ms`: emits 40 ms PCM16 chunks to the browser scheduler after each model chunk arrives.
 - `playback_lookahead_ms`: bounds how far the node may enqueue synthesized PCM ahead of real time; the default is `160` ms.
 
-`muxiva.speech_text_normalizer` is a project Node Pack between the built-in streaming Markdown formatter and TTS. It removes emoji and residual display syntax, preserves link labels, and speaks Chinese years, integers, decimals and percentages deterministically. It uses the public Node Pack mechanism and requires no Muxiva Runtime change.
+The browser uses a two-stage context policy: one natural 48–96-character phrase may start TTS early, while every later delta is retained until Agent Final and submitted as one remaining context. Short answers therefore use one Qwen generation and long answers at most two.
+
+`muxiva.speech_text_normalizer` is a project Node Pack between the built-in streaming Markdown formatter and TTS. It removes emoji, bare URLs/domains, email addresses, link destinations, horizontal rules, dashes, slashes and residual display syntax while preserving useful link labels. It speaks Chinese years, integers, decimals and percentages deterministically. It uses the public Node Pack mechanism and requires no Muxiva Runtime change.
