@@ -9,6 +9,7 @@
     "schemaVersion": { "const": 1 },
     "release": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
     "generatedAt": { "type": "string", "format": "date-time" },
+    "policyProfile": { "enum": ["latency-alpha-v1", "reliability-alpha-v1", "release-v1"] },
     "system": {
       "type": "object",
       "additionalProperties": false,

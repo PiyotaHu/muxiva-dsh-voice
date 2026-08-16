@@ -1,4 +1,6 @@
-const install = 'dsh plugin --profile web add @muxiva/dsh-voice'
+const install = `dsh plugin --profile web add @muxiva/dsh-voice@alpha
+npx @muxiva/dsh-voice@alpha setup
+npx @muxiva/dsh-voice@alpha start`
 const toast = document.querySelector('.toast')
 
 function copied(message = '已复制') {

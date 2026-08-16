@@ -4,6 +4,7 @@ import { createServer } from 'node:net'
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { venvRoot } from './paths.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const mode = process.argv[2]
@@ -88,7 +89,7 @@ try {
     ? resolve(root, `benchmarks/results/v${metadata.version}-m1-pro.json`)
     : resolve(root, '.muxiva/benchmark-quick.json')
   await mkdir(dirname(output), { recursive: true })
-  const python = resolve(root, '.muxiva/venv/bin/python')
+  const python = process.platform === 'win32' ? resolve(venvRoot, 'Scripts/python.exe') : resolve(venvRoot, 'bin/python')
   const runnerArgs = [
     'benchmarks/certify.py',
     '--mode', mode,

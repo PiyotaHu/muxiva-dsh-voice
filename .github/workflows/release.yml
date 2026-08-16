@@ -5,7 +5,7 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -27,6 +27,34 @@ jobs:
         run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
       - name: Require a certified performance report for this release
         run: node scripts/check-performance-report.mjs --require-version "$(node -p 'require("./package.json").version')"
+      - name: Build the immutable npm artifact
+        id: pack
+        shell: bash
+        run: |
+          npm pack --json > .pack.json
+          echo "package=$(jq -r '.[0].filename' .pack.json)" >> "$GITHUB_OUTPUT"
+      - name: Smoke the packed plugin in a clean DSH rc.6 Web profile
+        shell: bash
+        run: |
+          smoke_home="$RUNNER_TEMP/dsh-smoke"
+          export DSH_HOME="$smoke_home"
+          npx --yes @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile web add "./${{ steps.pack.outputs.package }}"
+          npx --yes @deepseek-ai/dsh@0.1.0-rc.6 --profile web --dump-config > "$RUNNER_TEMP/dsh-config.txt"
+          grep -q '@muxiva/dsh-voice' "$RUNNER_TEMP/dsh-config.txt"
+          port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
+          npx --yes @deepseek-ai/dsh@0.1.0-rc.6 --profile web --host 127.0.0.1 --port "$port" > "$RUNNER_TEMP/dsh-web.log" 2>&1 &
+          web_pid=$!
+          trap 'kill "$web_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent "http://127.0.0.1:$port/" > "$RUNNER_TEMP/dsh-index.html"; then break; fi
+            sleep 1
+          done
+          grep -q '"id":"@muxiva/dsh-voice"' "$RUNNER_TEMP/dsh-index.html"
+          curl --fail --silent "http://127.0.0.1:$port/plugins/@muxiva/dsh-voice/client.js" > "$RUNNER_TEMP/dsh-voice-client.js"
+          grep -q "id: '@muxiva/dsh-voice'" "$RUNNER_TEMP/dsh-voice-client.js"
+          kill "$web_pid"
+          wait "$web_pid" || true
+          trap - EXIT
       - name: Publish with the release-appropriate dist-tag
         shell: bash
         run: |
@@ -37,4 +65,16 @@ jobs:
           else
             dist_tag="latest"
           fi
-          npm publish --access public --tag "$dist_tag"
+          npm publish "./${{ steps.pack.outputs.package }}" --access public --tag "$dist_tag" --provenance
+      - name: Create GitHub Release with report and package artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          gh release create "$GITHUB_REF_NAME" \
+            "${{ steps.pack.outputs.package }}" \
+            "benchmarks/results/v${version}-m1-pro.json" \
+            --verify-tag \
+            --title "Muxiva Voice $GITHUB_REF_NAME" \
+            --notes-file "docs/releases/${version}.md"

@@ -18,7 +18,7 @@ const distributionNames = [
   'staleAudioAfterBargeIn',
 ]
 const budgets = {
-  alpha: {
+  'latency-alpha-v1': {
     browserCaptureToMuxivaFrame: 45,
     speechOnsetToBargeIn: 180,
     speechEndToAsrFinal: 750,
@@ -26,7 +26,15 @@ const budgets = {
     audioQueueAhead: 240,
     staleAudioAfterBargeIn: 120,
   },
-  release: {
+  'reliability-alpha-v1': {
+    browserCaptureToMuxivaFrame: 45,
+    speechOnsetToBargeIn: 1300,
+    speechEndToAsrFinal: 2400,
+    firstAgentTextToFirstTtsPcm: 1400,
+    audioQueueAhead: 240,
+    staleAudioAfterBargeIn: 120,
+  },
+  'release-v1': {
     browserCaptureToMuxivaFrame: 35,
     speechOnsetToBargeIn: 140,
     speechEndToAsrFinal: 550,
@@ -55,6 +63,8 @@ function validate(report, file) {
   requireValue(!Number.isNaN(Date.parse(report.generatedAt)), at('generatedAt must be ISO-8601'))
   requireValue(report.system?.chip && report.system?.os && report.system?.powerSource, at('system identity is incomplete'))
   requireValue(report.versions?.dshVoice === report.release, at('versions.dshVoice must equal release'))
+  const policyProfile = report.policyProfile ?? (report.release.includes('-') ? 'latency-alpha-v1' : 'release-v1')
+  requireValue(Object.hasOwn(budgets, policyProfile), at(`unknown policyProfile ${policyProfile}`))
   requireValue(/^[0-9a-f]{64}$/.test(report.modelLockSha256), at('invalid model lock SHA-256'))
   requireValue(report.workload?.turns >= 100, at('at least 100 turns are required'))
   requireValue(report.workload?.interruptions >= 30, at('at least 30 interruptions are required'))
@@ -75,10 +85,17 @@ function validate(report, file) {
   requireValue(report.stability?.unboundedQueues === 0, at('unbounded queues fail certification'))
   requireValue(report.quality?.ttsUnderruns === 0, at('TTS underruns fail certification'))
   requireValue(report.system?.powerSource === 'ac', at('certification must run on AC power'))
-  const limits = report.release.includes('-') ? budgets.alpha : budgets.release
+  const limits = budgets[policyProfile]
   for (const [name, maximum] of Object.entries(limits)) {
     requireValue(report.latencyMs?.[name]?.p95 <= maximum,
-      at(`latencyMs.${name}.p95 exceeds ${maximum} ms ${report.release.includes('-') ? 'alpha' : 'release'} budget`))
+      at(`latencyMs.${name}.p95 exceeds ${maximum} ms ${policyProfile} budget`))
+  }
+  if (policyProfile === 'reliability-alpha-v1') {
+    requireValue(report.release === '0.1.0-alpha.2', at('reliability-alpha-v1 is scoped to alpha.2'))
+    requireValue(report.quality.mandarinCer <= 0.15, at('Mandarin CER exceeds the reliability alpha gate'))
+    requireValue(report.quality.englishWer <= 0.08, at('English WER exceeds the reliability alpha gate'))
+    requireValue(report.throughput.asrFinalRealtimeFactor.p95 <= 0.1, at('ASR p95 realtime factor exceeds the reliability alpha gate'))
+    requireValue(report.throughput.ttsRealtimeFactor.p95 <= 1.35, at('TTS p95 realtime factor exceeds the reliability alpha gate'))
   }
 }
 

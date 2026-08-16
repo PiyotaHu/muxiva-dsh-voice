@@ -3,15 +3,15 @@
 ## 1. Verify the machine
 
 ```bash
-npx @muxiva/dsh-voice doctor
+npx @muxiva/dsh-voice@alpha doctor
 ```
 
-Every row must pass. `doctor --fix` creates only this project's `.muxiva/venv`; it does not alter system Python.
+Every row must pass. `doctor --fix` creates an isolated environment and does not alter system Python. Published npm/npx installs keep it in the stable OS user-data directory; `npx @muxiva/dsh-voice@alpha home` prints that directory.
 
 ## 2. Install local inference
 
 ```bash
-npx @muxiva/dsh-voice setup
+npx @muxiva/dsh-voice@alpha setup
 ```
 
 The downloader verifies every artifact before activation. An interrupted `curl` transfer resumes from its `.partial` file, while the Qwen3-TTS snapshot resumes through the Hugging Face cache. The default download is about 2.5 GB; local model files use about 2.3 GiB and the isolated Python environment about 700 MiB on the M1 Pro certification machine.
@@ -19,7 +19,7 @@ The downloader verifies every artifact before activation. An interrupted `curl` 
 ## 3. Install the DSH Bundle
 
 ```bash
-dsh plugin --profile web add @muxiva/dsh-voice
+dsh plugin --profile web add @muxiva/dsh-voice@alpha
 dsh --profile web --dump-config
 ```
 
@@ -34,8 +34,8 @@ The default is a low-overhead headless Runtime. For an observable development ru
 the opened Studio, then open **◎ Observe**. Studio reports per-Node process latency and
 throughput, per-Edge rates and queue age, Node-owned buffers, traces and hotspot verdicts.
 Use `--no-observe` or `npm run start:headless` when Studio should stay off.
-Both modes persist supervisor, bridge, Runtime and Node Host output in
-`.muxiva/runtime.log`; use `tail -f .muxiva/runtime.log` for unattended diagnosis.
+Both modes persist supervisor, bridge, Runtime and Node Host output. Run
+`npx @muxiva/dsh-voice@alpha home` to locate the stable data directory and `runtime.log`.
 
 After connection, selecting the large orb toggles microphone mute/unmute while keeping the
 AudioWorklet, WebSocket and Graph alive. Use the small **End** button only when you want to

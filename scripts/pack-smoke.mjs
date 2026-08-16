@@ -34,5 +34,14 @@ const help = spawnSync(executable, ['--help'], { cwd: installRoot, encoding: 'ut
 if (help.status !== 0 || !help.stdout.includes('muxiva-dsh-voice')) {
   throw new Error(`installed CLI smoke failed: ${help.stderr || help.stdout}`)
 }
+const stableHome = mkdtempSync(join(tmpdir(), 'muxiva-dsh-data-'))
+const home = spawnSync(executable, ['home'], {
+  cwd: installRoot,
+  encoding: 'utf8',
+  env: { ...process.env, MUXIVA_DSH_VOICE_HOME: stableHome },
+})
+if (home.status !== 0 || home.stdout.trim() !== stableHome) {
+  throw new Error(`installed CLI data-home smoke failed: ${home.stderr || home.stdout}`)
+}
 
 console.log(`pack/install smoke passed · ${result.files.length} files · ${result.unpackedSize} bytes unpacked · CLI linked`)

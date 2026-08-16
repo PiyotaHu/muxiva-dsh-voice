@@ -4,7 +4,7 @@ body:
   - type: textarea
     attributes:
       label: Doctor output
-      description: Run `npx @muxiva/dsh-voice doctor`. Remove private paths if needed.
+      description: Run `npx @muxiva/dsh-voice@alpha doctor`. Remove private paths if needed.
     validations: { required: true }
   - type: textarea
     attributes:

@@ -4,7 +4,7 @@ Local-first, full-duplex voice for the official [DeepSeek Harness](https://githu
 
 Your microphone, VAD, ASR, sentence scheduling, TTS, playback and interruption path stay on the Mac. DSH remains the stateful Agent harness and keeps its tools, sessions and Web transcript.
 
-> Alpha: the integration contract, source-checkout path and unattended M1 Pro certification are complete. Muxiva 0.1.1 wheels are published for CPython 3.8–3.14, including macOS universal2.
+> Alpha: public npm installation, the integration contract and unattended M1 Pro certification are complete. Muxiva 0.1.1 wheels are published for CPython 3.8–3.14, including macOS universal2. DSH rc.5 and rc.6 are supported; alpha.2 is certified against rc.6.
 
 ## What runs where
 
@@ -20,7 +20,19 @@ DSH assistant deltas ─────────▶ sentence buffer ─▶ speec
 - **DSH owns the Agent:** session history, model selection, tools, permissions and Web UI.
 - **The plugin owns only the bridge:** additive DSH UI, a versioned loopback protocol and project Node Packs. Neither upstream repository is patched.
 
-## Quick start from source (Apple Silicon)
+## Install the alpha (Apple Silicon)
+
+Prerequisites: macOS arm64, Node.js 22.19+, Python 3.11–3.13, the Muxiva 0.1.1 CLI, and the official DSH CLI.
+
+```bash
+dsh plugin --profile web add @muxiva/dsh-voice@alpha
+npx @muxiva/dsh-voice@alpha setup
+npx @muxiva/dsh-voice@alpha start
+```
+
+Run `dsh --profile web` in a second terminal. Models, the isolated Python environment and logs are stored outside the `npx` cache in the stable OS user-data directory. Print it with `npx @muxiva/dsh-voice@alpha home`, or override it with `MUXIVA_DSH_VOICE_HOME`.
+
+## Develop from source
 
 Prerequisites: macOS arm64, Node.js 22.19+, Python 3.11–3.13, Rust, Muxiva source at `../muxiva`, the `muxiva` CLI, and an installed official DSH CLI.
 
@@ -58,16 +70,6 @@ Open the printed DSH URL, create or open a session, then select the large voice 
 
 The reliability-first defaults wait for 2 seconds of continuous silence before emitting ASR Final and use a `0.75` VAD threshold with a 350 ms minimum-speech gate. SenseVoice Finals admit only Chinese and English speech with meaningful text, rejecting non-speech events and Japanese/Korean noise hallucinations. Qwen3-TTS uses `Serena` with a fixed calm prosody profile and conservative sampling. A two-stage context policy starts one early 48–96-character phrase, then synthesizes the entire remaining Agent Final as one context; short answers use one call and long answers use at most two. This avoids both full-answer startup latency and repeated per-sentence prosody resets. Bounded real-time PCM pacing prevents the playback queue from growing without limit.
 
-## Published release UX
-
-The public installation path is:
-
-```bash
-dsh plugin --profile web add @muxiva/dsh-voice@alpha
-npx @muxiva/dsh-voice@alpha setup
-npx @muxiva/dsh-voice@alpha start
-```
-
 The package is a native DSH Bundle (`dsh.bundle`) and a dual-face Web plugin (`dsh.client`). Discovery uses the GitHub [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic; DSH does not currently operate a centralized plugin marketplace.
 
 ## Security posture
@@ -79,7 +81,7 @@ The package is a native DSH Bundle (`dsh.bundle`) and a dual-face Web plugin (`d
 - Queue capacities are finite; stale TTS and Agent output are fenced after barge-in.
 - The DSH plugin adds UI through a documented slot and uses only `Session.prompt` / `Session.cancel`; it never changes the agent loop.
 
-See the [security model](docs/reference/security.md), [protocol](docs/reference/protocol.md), [model licenses](THIRD_PARTY_NOTICES.md), and [contribution guide](CONTRIBUTING.md).
+See the [compatibility matrix](docs/guide/compatibility.md), [security model](docs/reference/security.md), [protocol](docs/reference/protocol.md), [model licenses](THIRD_PARTY_NOTICES.md), and [contribution guide](CONTRIBUTING.md).
 
 ## Development
 

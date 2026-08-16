@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Muxiva 驱动的 DeepSeek Harness 本地全双工语音助手">
   <title>Muxiva Voice × DeepSeek Harness</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -22,8 +23,8 @@
         <button class="primary" data-copy-install>复制一键安装</button>
         <a class="secondary" href="./docs.html">阅读文档 <span>↗</span></a>
       </div>
-      <div class="install" aria-label="安装命令"><code>dsh plugin --profile web add @muxiva/dsh-voice</code><button data-copy-install aria-label="复制安装命令">⌘C</button></div>
-      <p class="alpha">Alpha · 源码体验已开放；公开一键安装随 Muxiva Python wheel Release 解锁。</p>
+      <div class="install" aria-label="安装命令"><code>dsh plugin --profile web add @muxiva/dsh-voice@alpha</code><button data-copy-install aria-label="复制完整安装命令">⌘C</button></div>
+      <p class="alpha">v0.1.0-alpha.2 · npm 一键安装已开放 · 兼容 DSH rc.5 / rc.6</p>
 
       <div class="voice-demo" aria-label="交互效果预览">
         <div class="orb-wrap"><div class="orb-ring"></div><button class="orb" aria-label="切换语音演示"><span class="mic">⌁</span></button></div>
@@ -33,10 +34,10 @@
     </section>
 
     <section class="proof">
-      <div><strong>p95 ≤ 650 ms</strong><span>首个 TTS PCM Release Gate · 非实测值</span></div>
+      <div><strong>130 / 130</strong><span>M1 Pro 实测回合全部完成</span></div>
       <div><strong>100%</strong><span>语音模型留在本机</span></div>
       <div><strong>0</strong><span>上游架构侵入</span></div>
-      <div><strong>7</strong><span>可替换 Muxiva Node Packs</span></div>
+      <div><strong>8 Nodes</strong><span>可观测 Muxiva 实时 Graph</span></div>
     </section>
 
     <section id="pipeline" class="pipeline section">

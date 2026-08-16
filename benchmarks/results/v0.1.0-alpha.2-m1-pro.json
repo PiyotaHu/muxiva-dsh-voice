@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "release": "0.1.0-alpha.2",
+  "generatedAt": "2026-08-16T08:05:31.765033+00:00",
+  "policyProfile": "reliability-alpha-v1",
+  "system": {
+    "machine": "MacBookPro18,3",
+    "chip": "Apple M1 Pro",
+    "memoryGb": 16.0,
+    "os": "macOS 26.5.2 (25F84)",
+    "powerSource": "ac"
+  },
+  "versions": {
+    "muxiva": "0.1.1",
+    "dshVoice": "0.1.0-alpha.2",
+    "deepseekHarness": "0.1.0-rc.6",
+    "node": "25.5.0",
+    "python": "3.13.12"
+  },
+  "modelLockSha256": "637a8d7fea988222c9b1451988c1a95a60f5ee1334e1f549bdc72eb70097f8c5",
+  "workload": {
+    "turns": 130,
+    "interruptions": 30,
+    "idleMinutes": 5.0,
+    "soakMinutes": 30.0,
+    "warmupTurns": 1
+  },
+  "latencyMs": {
+    "browserCaptureToMuxivaFrame": {
+      "samples": 130,
+      "p50": 7.512,
+      "p95": 14.913,
+      "p99": 20.287
+    },
+    "speechOnsetToBargeIn": {
+      "samples": 130,
+      "p50": 886.567,
+      "p95": 1156.992,
+      "p99": 1255.977
+    },
+    "speechEndToAsrFinal": {
+      "samples": 130,
+      "p50": 2112.372,
+      "p95": 2181.191,
+      "p99": 2239.802
+    },
+    "firstAgentTextToFirstTtsPcm": {
+      "samples": 130,
+      "p50": 329.423,
+      "p95": 1175.314,
+      "p99": 1270.098
+    },
+    "audioQueueAhead": {
+      "samples": 10811,
+      "p50": 219.669,
+      "p95": 227.193,
+      "p99": 231.455
+    },
+    "staleAudioAfterBargeIn": {
+      "samples": 30,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0
+    }
+  },
+  "throughput": {
+    "asrFinalRealtimeFactor": {
+      "samples": 130,
+      "p50": 0.032,
+      "p95": 0.062,
+      "p99": 0.091
+    },
+    "ttsRealtimeFactor": {
+      "samples": 100,
+      "p50": 1.043,
+      "p95": 1.261,
+      "p99": 1.29
+    }
+  },
+  "resources": {
+    "coldStartMs": 2935.49525,
+    "warmStartMs": 2978.9498330000006,
+    "idleCpuPercent": 11.425,
+    "activeCpuPercent": 19.058,
+    "peakRssMb": 1111.297,
+    "modelDiskMb": 2354.988
+  },
+  "quality": {
+    "mandarinCer": 0.126162,
+    "englishWer": 0.063158,
+    "ttsUnderruns": 0
+  },
+  "stability": {
+    "completedTurns": 130,
+    "failedTurns": 0,
+    "droppedAudioFrames": 0,
+    "lateResultsDiscarded": 0,
+    "unboundedQueues": 0
+  },
+  "notes": [
+    "Unattended deterministic loopback certification; no cloud audio service was used.",
+    "ASR fixtures were generated locally with macOS say voices Tingting and Samantha and were not committed.",
+    "CER/WER describe the synthetic fixture corpus and are not presented as real-human microphone accuracy.",
+    "Capture latency uses a test-only monotonic marker acknowledged when the next PCM chunk becomes a Muxiva AudioFrame.",
+    "The reliability-alpha-v1 policy deliberately waits for meaningful ASR text before barge-in and two seconds of continuous silence before Final; these user-visible holds are included in latency.",
+    "Short-answer TTS uses one complete context. Interruption trials use a conservative long complete context before cancellation; the browser two-stage context buffer is covered by deterministic client tests.",
+    "Raw trace: benchmarks/traces/certify-1786864579.jsonl (local artifact, intentionally ignored by Git)."
+  ]
+}

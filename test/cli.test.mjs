@@ -1,8 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { mkdtempSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
@@ -18,6 +20,16 @@ test('CLI exposes explicit headless and observable startup modes', async () => {
   assert.equal(metadata.scripts.start, 'node scripts/cli.mjs start')
   assert.equal(metadata.scripts['start:headless'], 'node scripts/cli.mjs start --no-observe')
   assert.equal(metadata.scripts.observe, 'node scripts/cli.mjs start --observe')
+})
+
+test('CLI exposes and honors a stable data-home override', () => {
+  const home = mkdtempSync(join(tmpdir(), 'muxiva-dsh-voice-home-'))
+  const result = spawnSync(process.execPath, [cli, 'home'], {
+    encoding: 'utf8',
+    env: { ...process.env, MUXIVA_DSH_VOICE_HOME: home },
+  })
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(result.stdout.trim(), home)
 })
 
 test('CLI rejects ambiguous observability flags before environment checks', () => {

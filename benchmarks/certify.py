@@ -507,7 +507,7 @@ class Certification:
         model = re.search(r"Model Identifier:\s*(.+)", hardware)
         chip = re.search(r"Chip:\s*(.+)", hardware)
         memory = re.search(r"Memory:\s*([0-9.]+) GB", hardware)
-        dsh_package = json.loads((ROOT.parent / "deepseek-harness/apps/cli/package.json").read_text())
+        certified_dsh_version = package["muxivaVoice"]["certifiedDshVersion"]
         power = "ac" if "AC Power" in command("pmset", "-g", "batt") else "battery"
         model_lock_hash = hashlib.sha256((ROOT / "models.lock.json").read_bytes()).hexdigest()
         model_disk_mb = int(command("du", "-sk", str(ROOT / ".models")).split()[0]) / 1024
@@ -519,6 +519,7 @@ class Certification:
             "schemaVersion": 1,
             "release": package["version"],
             "generatedAt": datetime.now(timezone.utc).isoformat(),
+            "policyProfile": package["muxivaVoice"]["performanceProfile"],
             "system": {
                 "machine": model.group(1).strip() if model else platform.machine(),
                 "chip": chip.group(1).strip() if chip else command("sysctl", "-n", "machdep.cpu.brand_string"),
@@ -529,7 +530,7 @@ class Certification:
             "versions": {
                 "muxiva": command("muxiva", "--version").removeprefix("muxiva "),
                 "dshVoice": package["version"],
-                "deepseekHarness": dsh_package["version"],
+                "deepseekHarness": certified_dsh_version,
                 "node": command("node", "--version").removeprefix("v"),
                 "python": platform.python_version(),
             },

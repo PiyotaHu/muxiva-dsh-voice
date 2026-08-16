@@ -4,9 +4,21 @@
 
 麦克风、VAD、ASR、分句、TTS、播放和打断链路都留在 Mac 本机；DSH 继续负责有状态 Agent、工具、权限、会话和 Web 聊天记录。
 
-> 当前是 Alpha：源码联调路径与 M1 Pro 无人值守认证已经完成。Muxiva 0.1.1 已发布 CPython 3.8–3.14 Wheel（包括 macOS universal2）。
+> 当前是 Alpha：公开 npm 安装、源码联调路径与 M1 Pro 无人值守认证已经完成。兼容 DSH rc.5 / rc.6，本轮 alpha.2 以 rc.6 认证；Muxiva 0.1.1 已发布 CPython 3.8–3.14 Wheel（包括 macOS universal2）。
 
-## 源码快速开始
+## 一键安装（Apple Silicon）
+
+前置要求：Node.js 22.19+、Python 3.11–3.13、Muxiva 0.1.1 CLI 与官方 DSH CLI。
+
+```bash
+dsh plugin --profile web add @muxiva/dsh-voice@alpha
+npx @muxiva/dsh-voice@alpha setup
+npx @muxiva/dsh-voice@alpha start
+```
+
+另开一个终端运行 `dsh --profile web`。公开 npm/npx 安装会把约 2.5 GB 模型、隔离 Python 环境和日志保存在稳定的系统用户数据目录，不会随着 npm 缓存清理而丢失。运行 `npx @muxiva/dsh-voice@alpha home` 可查看目录，也可用 `MUXIVA_DSH_VOICE_HOME` 覆盖。
+
+## 源码开发
 
 前置要求：Apple Silicon Mac、Node.js 22.19+、Python 3.11–3.13、Rust、相邻目录 `../muxiva` 中的 Muxiva 源码、已安装的 `muxiva` CLI 和官方 DSH CLI。
 
@@ -45,7 +57,7 @@ Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Tr
 - 本仓库只管桥：DSH Bundle、Web 控件、版本化本地协议和项目 Node Pack。
 - 当前没有修改 Muxiva 或 DSH 上游仓库。
 
-模型下载采用固定 revision，并对 Qwen3-TTS 主权重和语音 tokenizer 执行 SHA-256 校验；npm 包本身不重新分发模型。完整说明见 [模型和许可证](THIRD_PARTY_NOTICES.md)、[协议](docs/reference/protocol.md)和[安全模型](docs/reference/security.md)。
+模型下载采用固定 revision，并对 Qwen3-TTS 主权重和语音 tokenizer 执行 SHA-256 校验；npm 包本身不重新分发模型。完整说明见 [DSH 兼容矩阵](docs/guide/compatibility.md)、[模型和许可证](THIRD_PARTY_NOTICES.md)、[协议](docs/reference/protocol.md)和[安全模型](docs/reference/security.md)。
 
 模型安装完成后，可以运行 `npm run test:e2e`。它会启动真实的 8-Node Muxiva Graph，认证“中文文本 → normalizer → Qwen3-TTS 24 kHz PCM → 模拟麦克风 → Silero VAD → SenseVoice Final”的闭环，并另外验证英文识别。默认 TTS 是在 Apple Silicon 上通过 MLX 运行的 Qwen3-TTS 0.6B CustomVoice 8-bit，不包含云端 fallback。
 

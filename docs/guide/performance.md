@@ -17,7 +17,34 @@ report or the documentation link is missing.
 
 | Release | Machine | Report | Status |
 | --- | --- | --- | --- |
+| 0.1.0-alpha.2 | MacBook Pro M1 Pro, 16 GB | [JSON](../../benchmarks/results/v0.1.0-alpha.2-m1-pro.json) | DSH rc.6 release certification |
 | 0.1.0-alpha.1 | MacBook Pro M1 Pro, 16 GB | [JSON](../../benchmarks/results/v0.1.0-alpha.1-m1-pro.json) | Alpha passed |
+
+### 0.1.0-alpha.2 measured summary — reliability-alpha-v1
+
+| Metric | p50 | p95 | p99 |
+| --- | ---: | ---: | ---: |
+| Capture → Muxiva Frame | 7.5 ms | 14.9 ms | 20.3 ms |
+| Speech onset → ASR-confirmed barge-in | 886.6 ms | 1157.0 ms | 1256.0 ms |
+| Speech end → ASR Final | 2112.4 ms | 2181.2 ms | 2239.8 ms |
+| Agent text → first TTS PCM | 329.4 ms | 1175.3 ms | 1270.1 ms |
+| Audio queue ahead | 219.7 ms | 227.2 ms | 231.5 ms |
+| Stale audio after barge-in | 0.0 ms | 0.0 ms | 0.0 ms |
+
+The run completed 130/130 turns and 30/30 interruptions, five minutes of idle
+listening, and a 30-minute soak with zero failed turns, dropped frames, TTS
+underruns, stale post-interruption audio, late results, or unbounded queues.
+Mandarin CER was 12.62% and English WER was 6.32% on the deterministic synthetic
+corpus. Peak process-tree RSS was 1111.3 MiB; active CPU averaged 19.1%, idle CPU
+11.4%, and model storage was 2355.0 MiB. ASR p95 RTF was 0.062 and TTS p95 RTF
+was 1.261.
+
+This release intentionally selects `reliability-alpha-v1`. It requires
+meaningful ASR text before interruption and two seconds of continuous silence
+before Final, so those user-visible waits are included in the measured barge-in
+and endpoint latency. It also favors complete-context Qwen prosody over the old
+first-token gate. These numbers therefore must not be compared to alpha.1 as if
+the event boundaries were unchanged.
 
 ### 0.1.0-alpha.1 measured summary
 
@@ -42,16 +69,23 @@ Do not publish a hand-selected “best run.” The report contains p50/p95/p99 o
 the complete accepted workload and is tied to the exact Muxiva, DSH, plugin, OS,
 and model-lock versions.
 
-## Latency budgets
+## Versioned policy budgets
 
-| Measurement | Alpha budget | Release gate |
-| --- | ---: | ---: |
-| Browser capture → Muxiva Frame | p95 ≤ 45 ms | p95 ≤ 35 ms |
-| Speech onset → barge-in Signal | p95 ≤ 180 ms | p95 ≤ 140 ms |
-| Speech end → ASR Final | p95 ≤ 750 ms | p95 ≤ 550 ms |
-| First DSH text → first TTS PCM | p95 ≤ 900 ms | p95 ≤ 650 ms |
-| Audio queue ahead | ≤ 240 ms | ≤ 160 ms |
-| Stale audio after barge-in | ≤ 120 ms | ≤ 80 ms |
+| Measurement | Latency Alpha v1 | Reliability Alpha v1 | Release v1 |
+| --- | ---: | ---: | ---: |
+| Browser capture → Muxiva Frame | p95 ≤ 45 ms | p95 ≤ 45 ms | p95 ≤ 35 ms |
+| Speech onset → barge-in Signal | p95 ≤ 180 ms | p95 ≤ 1300 ms | p95 ≤ 140 ms |
+| Speech end → ASR Final | p95 ≤ 750 ms | p95 ≤ 2400 ms | p95 ≤ 550 ms |
+| First DSH text → first TTS PCM | p95 ≤ 900 ms | p95 ≤ 1400 ms | p95 ≤ 650 ms |
+| Audio queue ahead | ≤ 240 ms | ≤ 240 ms | ≤ 160 ms |
+| Stale audio after barge-in | ≤ 120 ms | ≤ 120 ms | ≤ 80 ms |
+
+`latency-alpha-v1` is retained for the immutable alpha.1 report.
+`reliability-alpha-v1` is narrowly scoped to alpha.2 and additionally requires
+Mandarin CER ≤ 15%, English WER ≤ 8%, ASR p95 RTF ≤ 0.10 and TTS p95 RTF ≤
+1.35. A future stable release cannot silently inherit these relaxed
+user-visible latency limits: it must satisfy `release-v1` or introduce and
+document a new pre-release policy before measurement.
 
 Certification includes 100 scripted turns, 30 mid-answer interruptions, Chinese, English and code-oriented prompts, five minutes of continuous idle listening, and a 30-minute soak. Report median/p95/p99 plus the exact model lock and DSH/Muxiva versions.
 
@@ -87,7 +121,7 @@ npm run benchmark:quick
 npm run benchmark:certify
 
 # Validate every committed report and require this package version.
-node scripts/check-performance-report.mjs --require-version 0.1.0-alpha.1
+node scripts/check-performance-report.mjs --require-version 0.1.0-alpha.2
 ```
 
 The harness synthesizes its Chinese and English fixtures locally with the macOS

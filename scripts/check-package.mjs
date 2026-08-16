@@ -7,6 +7,12 @@ for (const file of ['package.json', 'graph.json', 'models.lock.json', 'benchmark
 const metadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
 if (metadata.publishConfig?.access !== 'public') throw new Error('scoped npm package must publish publicly')
 if (metadata.publishConfig?.registry !== 'https://registry.npmjs.org/') throw new Error('npm release registry is not pinned')
+if (metadata.peerDependencies?.['@deepseek-ai/cordis'] !== '^4.0.1') throw new Error('DSH Cordis peer must match the official 4.x package')
+for (const name of ['@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-ui-conversation']) {
+  if (metadata.peerDependencies?.[name] !== '0.1.0-rc.5 || 0.1.0-rc.6') throw new Error(`${name} must explicitly support DSH rc.5 and rc.6`)
+}
+if (metadata.muxivaVoice?.certifiedDshVersion !== '0.1.0-rc.6') throw new Error('release certification must target DSH rc.6')
+if (metadata.muxivaVoice?.performanceProfile !== 'reliability-alpha-v1') throw new Error('alpha.2 must declare its reliability-first performance policy')
 const graph = JSON.parse(await readFile(resolve(root, 'graph.json'), 'utf8'))
 const modelLock = JSON.parse(await readFile(resolve(root, 'models.lock.json'), 'utf8'))
 const graphText = JSON.stringify(graph)
@@ -27,6 +33,8 @@ if (!modelLock.models.some(model => model.id === 'qwen3-tts-12hz-0.6b-customvoic
 const nodeDirs = await readdir(resolve(root, '.muxiva/nodes'))
 if (nodeDirs.length !== 7) throw new Error(`expected seven project Node Packs, found ${nodeDirs.length}`)
 for (const directory of nodeDirs) JSON.parse(await readFile(resolve(root, '.muxiva/nodes', directory, 'muxiva.node.json'), 'utf8'))
+const license = await readFile(resolve(root, 'LICENSE'), 'utf8')
+if (!license.includes('TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION') || !license.includes('END OF TERMS AND CONDITIONS')) throw new Error('LICENSE must contain the complete Apache-2.0 text')
 const client = await readFile(resolve(root, 'lib/client.js'), 'utf8')
 if (!client.startsWith('window.__ModuleLoader__.load({')) throw new Error('DSH browser artifact lacks the module-loader handoff')
 if (!client.includes("id: '@muxiva/dsh-voice'")) throw new Error('DSH browser artifact id mismatch')

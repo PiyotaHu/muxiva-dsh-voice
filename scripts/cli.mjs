@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 import { createHash, randomBytes } from 'node:crypto'
 import { createReadStream, createWriteStream, existsSync } from 'node:fs'
-import { mkdir, readFile, rename, stat } from 'node:fs/promises'
+import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { spawn, spawnSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dataPath, dataRoot, packageRoot, packagedLayout, runtimeLog, runtimeRoot, venvRoot } from './paths.mjs'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const root = packageRoot
 const args = process.argv.slice(2)
 const command = args[0] ?? 'help'
 const packageMetadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
 const muxivaVersion = packageMetadata.muxivaVoice.muxivaVersion
+const packageVersion = packageMetadata.version
 
 function run(program, argv, options = {}) {
   return new Promise((resolveRun, reject) => {
@@ -32,25 +33,26 @@ async function sha256(path) {
 
 async function ensureExtracted(model, target) {
   if (!model.extract) return
-  const ready = (model.files ?? []).every(path => existsSync(resolve(root, path)))
+  const ready = (model.files ?? []).every(path => existsSync(dataPath(path)))
   if (ready) return
   console.log(`[voice] extract ${model.id}`)
-  await run('tar', ['-xjf', target, '-C', resolve(root, model.extract)])
+  await mkdir(dataPath(model.extract), { recursive: true })
+  await run('tar', ['-xjf', target, '-C', dataPath(model.extract)])
 }
 
 async function verifyModel(model) {
   if (model.source === 'huggingface') {
-    const modelRoot = resolve(root, model.target)
-    if (!(model.files ?? []).every(path => existsSync(resolve(root, path)))) return false
+    const modelRoot = dataPath(model.target)
+    if (!(model.files ?? []).every(path => existsSync(dataPath(path)))) return false
     for (const [relative, expected] of Object.entries(model.sha256 ?? {})) {
       const path = resolve(modelRoot, relative)
       if (!existsSync(path) || await sha256(path) !== expected) return false
     }
     return true
   }
-  const target = resolve(root, model.target)
+  const target = dataPath(model.target)
   if (!existsSync(target) || await sha256(target) !== model.sha256) return false
-  return (model.files ?? []).every(path => existsSync(resolve(root, path)))
+  return (model.files ?? []).every(path => existsSync(dataPath(path)))
 }
 
 async function downloadHuggingFace(model) {
@@ -58,7 +60,7 @@ async function downloadHuggingFace(model) {
     console.log(`[voice] reuse ${model.id}`)
     return
   }
-  const target = resolve(root, model.target)
+  const target = dataPath(model.target)
   await mkdir(target, { recursive: true })
   console.log(`[voice] download ${model.id} from pinned Hugging Face revision`)
   const script = [
@@ -79,7 +81,7 @@ async function downloadHuggingFace(model) {
 
 async function download(model) {
   if (model.source === 'huggingface') return downloadHuggingFace(model)
-  const target = resolve(root, model.target)
+  const target = dataPath(model.target)
   if (existsSync(target) && await sha256(target) === model.sha256) {
     console.log(`[voice] reuse ${model.id}`)
     await ensureExtracted(model, target)
@@ -102,7 +104,7 @@ async function models() {
 }
 
 function pythonPath() {
-  return resolve(root, '.muxiva/venv/bin/python')
+  return process.platform === 'win32' ? resolve(venvRoot, 'Scripts/python.exe') : resolve(venvRoot, 'bin/python')
 }
 
 function pythonVersion(program) {
@@ -135,17 +137,17 @@ async function doctor(fix = false) {
   process.exitCode = 0
   if (fix) {
     if (existsSync(pythonPath()) && !supportedPython(pythonPath())) {
-      const backup = resolve(root, `.muxiva/venv-unsupported-${pythonVersion(pythonPath()).replace('.', '-')}-${Date.now()}`)
-      await rename(resolve(root, '.muxiva/venv'), backup)
+      const backup = `${venvRoot}-unsupported-${pythonVersion(pythonPath()).replace('.', '-')}-${Date.now()}`
+      await rename(venvRoot, backup)
       console.log(`[voice] preserved unsupported venv at ${backup}`)
     }
-    if (!existsSync(pythonPath())) await run(basePython(), ['-m', 'venv', resolve(root, '.muxiva/venv')])
+    if (!existsSync(pythonPath())) await run(basePython(), ['-m', 'venv', venvRoot])
     await run(pythonPath(), ['-m', 'pip', 'install', '--disable-pip-version-check', '-r', resolve(root, 'requirements-macos.txt')])
     const source = sourceRoot()
     if (source) {
       await run(pythonPath(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'maturin==1.9.4'])
       await run(pythonPath(), ['-m', 'maturin', 'develop', '--release', '--manifest-path', resolve(source, 'crates/muxiva-python/Cargo.toml')], {
-        env: { ...process.env, VIRTUAL_ENV: resolve(root, '.muxiva/venv') },
+        env: { ...process.env, VIRTUAL_ENV: venvRoot },
       })
     } else {
       await run(pythonPath(), ['-m', 'pip', 'install', '--disable-pip-version-check', `muxiva==${muxivaVersion}`])
@@ -172,6 +174,7 @@ async function doctor(fix = false) {
     report('project Python 3.11–3.13 environment', imports, imports ? 'dependencies ready' : (python ? 'dependency import failed' : 'run doctor --fix')),
     report('pinned local models', readyModels, readyModels ? 'checksums verified' : 'run models'),
   ]
+  console.log(`[voice] data home: ${dataRoot}`)
   process.exitCode = results.every(Boolean) ? 0 : 1
 }
 
@@ -224,7 +227,8 @@ async function start(observe = false) {
     PYTHONPATH: [resolve(root, 'python'), process.env.PYTHONPATH].filter(Boolean).join(':'),
   }
   const runtimePort = portFromEnvironment('MUXIVA_DSH_RUNTIME_PORT', 8080)
-  const logPath = resolve(root, '.muxiva/runtime.log')
+  const projectRoot = await prepareRuntimeProject()
+  const logPath = runtimeLog
   await mkdir(dirname(logPath), { recursive: true })
   const log = createWriteStream(logPath, { flags: 'a' })
   log.write(`\n[supervisor] ${new Date().toISOString()} start mode=${observe ? 'observe' : 'headless'} runtime_port=${runtimePort}\n`)
@@ -242,8 +246,8 @@ async function start(observe = false) {
     bridge.once('exit', (code) => { clearTimeout(timer); reject(new Error(`voice bridge exited during startup with ${code}`)) })
   })
   const muxivaArgs = observe
-    ? ['studio', resolve(root, 'graph.json'), '--host', '127.0.0.1', ...(process.env.MUXIVA_DSH_STUDIO_NO_OPEN === '1' ? ['--no-open'] : [])]
-    : ['serve', resolve(root, 'graph.json'), '--host', '127.0.0.1', '--port', String(runtimePort)]
+    ? ['studio', resolve(projectRoot, 'graph.json'), '--host', '127.0.0.1', ...(process.env.MUXIVA_DSH_STUDIO_NO_OPEN === '1' ? ['--no-open'] : [])]
+    : ['serve', resolve(projectRoot, 'graph.json'), '--host', '127.0.0.1', '--port', String(runtimePort)]
   let runtime = null
   let stopping = false
   const stopChildren = () => {
@@ -255,7 +259,7 @@ async function start(observe = false) {
   process.once('SIGTERM', stopChildren)
   try {
     runtime = spawn('muxiva', muxivaArgs, {
-      cwd: root, env, stdio: ['inherit', 'pipe', 'pipe'], detached,
+      cwd: projectRoot, env, stdio: ['inherit', 'pipe', 'pipe'], detached,
     })
     teeChild(runtime, 'muxiva', log)
     const firstExit = await Promise.race([
@@ -278,6 +282,24 @@ async function start(observe = false) {
   }
 }
 
+function rewriteModelPaths(value) {
+  if (Array.isArray(value)) return value.map(rewriteModelPaths)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, rewriteModelPaths(item)]))
+  }
+  return typeof value === 'string' && value.startsWith('.models/') ? dataPath(value) : value
+}
+
+async function prepareRuntimeProject() {
+  const project = runtimeRoot(packageVersion)
+  if (!packagedLayout) return project
+  await mkdir(resolve(project, '.muxiva'), { recursive: true })
+  await cp(resolve(root, '.muxiva/nodes'), resolve(project, '.muxiva/nodes'), { recursive: true, force: true })
+  const graph = rewriteModelPaths(JSON.parse(await readFile(resolve(root, 'graph.json'), 'utf8')))
+  await writeFile(resolve(project, 'graph.json'), `${JSON.stringify(graph, null, 2)}\n`)
+  return project
+}
+
 function help() {
   console.log(`muxiva-dsh-voice
 
@@ -287,11 +309,13 @@ function help() {
   start [--no-observe]
                   run the local voice Graph headlessly (default)
   start --observe open Muxiva Studio for Run/Stop, live Nodes, Edges and traces
+  home            print the stable model, Python and runtime data directory
 
-Runtime output is persisted to .muxiva/runtime.log in both modes.
+Published npx installs persist models and Python under the OS user data directory.
+Override it with MUXIVA_DSH_VOICE_HOME. Runtime log: ${runtimeLog}
 
 Install the DSH surface separately:
-  dsh plugin --profile web add @muxiva/dsh-voice`)
+  dsh plugin --profile web add @muxiva/dsh-voice@alpha`)
 }
 
 try {
@@ -299,6 +323,7 @@ try {
   else if (command === 'doctor') await doctor(args.includes('--fix'))
   else if (command === 'setup') { await doctor(true); await models(); await doctor(false) }
   else if (command === 'start') await start(observeMode(args))
+  else if (command === 'home') console.log(dataRoot)
   else if (command === 'help' || command === '--help' || command === '-h') help()
   else throw new Error(`unknown command: ${command}`)
 } catch (error) {

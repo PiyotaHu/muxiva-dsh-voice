@@ -1,6 +1,6 @@
 {
   "name": "@muxiva/dsh-voice",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Local-first, full-duplex voice for DeepSeek Harness, orchestrated by Muxiva",
   "type": "module",
   "main": "./lib/index.js",
@@ -53,10 +53,13 @@
     "node": ">=22.19"
   },
   "muxivaVoice": {
-    "muxivaVersion": "0.1.1"
+    "muxivaVersion": "0.1.1",
+    "certifiedDshVersion": "0.1.0-rc.6",
+    "compatibleDshVersions": ["0.1.0-rc.5", "0.1.0-rc.6"],
+    "performanceProfile": "reliability-alpha-v1"
   },
   "scripts": {
-    "check": "node --test && PYTHONPATH=python python3 -m unittest discover -s test -p '*_test.py' && node scripts/check-package.mjs && node scripts/check-performance-report.mjs",
+    "check": "node --test && PYTHONPATH=python python3 -m unittest discover -s test -p '*_test.py' && node scripts/check-package.mjs && node scripts/check-docs.mjs && node scripts/check-performance-report.mjs",
     "check:performance": "node scripts/check-performance-report.mjs",
     "test": "npm run check",
     "test:e2e": "node scripts/e2e-smoke.mjs",
@@ -94,9 +97,9 @@
   },
   "license": "Apache-2.0",
   "peerDependencies": {
-    "@deepseek-ai/cordis": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-client-runtime": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-client-ui-conversation": "0.1.0-rc.5",
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-client-runtime": "0.1.0-rc.5 || 0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.1.0-rc.5 || 0.1.0-rc.6",
     "react": "^18.2.0"
   },
   "peerDependenciesMeta": {
