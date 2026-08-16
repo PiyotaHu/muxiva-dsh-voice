@@ -3,12 +3,12 @@
   "graph_id": "dsh-local-full-duplex-voice",
   "nodes": [
     {"id":"browser-mic","node_type":"muxiva.dsh.local_ws_audio_source","language":"python","factory_version":"0.1.0","node_config":{}},
-    {"id":"local-vad-asr","node_type":"muxiva.sherpa_vad_asr","language":"python","factory_version":"0.2.0","node_config":{"model_dir":".models/asr-zh","final_model_dir":".models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17","final_language":"auto","final_use_itn":true,"vad_model":".models/silero_vad.onnx","num_threads":2,"final_num_threads":2,"vad_threshold":0.6,"min_silence_seconds":0.4,"min_speech_seconds":0.25,"barge_in_min_chars":1,"max_speech_seconds":30}},
+    {"id":"local-vad-asr","node_type":"muxiva.sherpa_vad_asr","language":"python","factory_version":"0.2.0","node_config":{"model_dir":".models/asr-zh","final_model_dir":".models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17","final_language":"auto","final_use_itn":true,"vad_model":".models/silero_vad.onnx","num_threads":2,"final_num_threads":2,"vad_threshold":0.7,"min_silence_seconds":2.0,"min_speech_seconds":0.35,"barge_in_min_chars":1,"max_speech_seconds":30}},
     {"id":"voice-events","node_type":"muxiva.dsh.local_ws_event_sink","language":"python","factory_version":"0.1.0","node_config":{}},
     {"id":"dsh-agent-text","node_type":"muxiva.dsh.local_ws_text_source","language":"python","factory_version":"0.1.0","node_config":{}},
     {"id":"speech-formatter","node_type":"builtin.speech_formatter","language":"rust","factory_version":"1.0.0","node_config":{"code_block_message":"代码已经生成，请在聊天窗口查看。","strip_urls":true,"table_message":"详细表格请在聊天窗口查看。"}},
     {"id":"speech-normalizer","node_type":"muxiva.speech_text_normalizer","language":"python","factory_version":"0.1.0","node_config":{"language":"auto","code_message":"代码已经生成，请在聊天窗口查看。"}},
-    {"id":"local-qwen3-tts","node_type":"muxiva.qwen3_tts","language":"python","factory_version":"0.1.0","node_config":{"model_dir":".models/qwen3-tts-12hz-0.6b-customvoice-8bit","speaker":"Vivian","language":"Auto","instruct":"自然、温暖、清晰的对话语气。","streaming_interval":0.32,"pcm_chunk_ms":40}},
+    {"id":"local-qwen3-tts","node_type":"muxiva.qwen3_tts","language":"python","factory_version":"0.1.0","node_config":{"model_dir":".models/qwen3-tts-12hz-0.6b-customvoice-8bit","speaker":"Serena","language":"Auto","instruct":"用温柔、自然、亲切的年轻女性声音说话，语速舒缓，语调柔和，使用标准普通话，不要夸张。","streaming_interval":0.32,"pcm_chunk_ms":40}},
     {"id":"browser-speaker","node_type":"muxiva.dsh.local_ws_audio_sink","language":"python","factory_version":"0.1.0","node_config":{}}
   ],
   "edges": [

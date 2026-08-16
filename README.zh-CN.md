@@ -36,6 +36,8 @@ Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Tr
 
 进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；浏览器不再注入 PCM，Muxiva Audio Source 进入 paused，并在恢复前重置 VAD/ASR 流。右侧小“结束”按钮才会关闭链路。Silero VAD 只产生候选，ASR 出现非空文字后才确认打断并清掉旧播放/TTS、取消旧 DSH Turn；空识别会回到聆听，不会卡在思考状态。
 
+默认端点等待 2 秒连续静音后才产生 ASR Final，允许自然的思考停顿；VAD 使用更严格的 `0.70` 阈值与 `350 ms` 最短语音来降低环境噪声误触发。TTS 默认使用 Qwen3-TTS 的 `Serena`——温暖、轻柔的普通话年轻女声。
+
 ## 边界
 
 - Muxiva 管实时系统：Frame、Graph、有界队列、背压、Signal、取消和可观测性。

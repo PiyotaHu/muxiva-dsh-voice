@@ -55,14 +55,14 @@ The test synthesizes a Chinese sentence, routes all resulting browser PCM back a
 
 Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 
-- `vad_threshold`: lower hears quieter speech; the false-trigger-resistant default is `0.60`.
-- `min_speech_seconds`: candidates shorter than this are rejected; `0.25` is the default.
-- `min_silence_seconds`: lower commits faster but may split sentences; `0.40` is the default.
+- `vad_threshold`: lower hears quieter speech; the false-trigger-resistant default is `0.70`.
+- `min_speech_seconds`: candidates shorter than this are rejected; `0.35` is the default.
+- `min_silence_seconds`: lower commits faster but may split sentences; the conversational default is `2.0`, so a short thinking pause does not produce `asr.final`.
 - `barge_in_min_chars`: number of non-space preview characters required to confirm interruption; `1` is the default. VAD alone never cancels playback or the Agent turn.
 - `final_language`: `auto` detects Chinese or English; pin `zh` or `en` only for a language-specific deployment.
-- `speaker`: `Vivian` is the default Mandarin voice. Other bundled voices are `Serena`, `Uncle_Fu`, `Dylan`, `Eric`, `Ryan`, `Aiden`, `Ono_Anna`, and `Sohee`.
+- `speaker`: `Serena` is the default warm, gentle Mandarin female voice. Other bundled voices are `Vivian`, `Uncle_Fu`, `Dylan`, `Eric`, `Ryan`, `Aiden`, `Ono_Anna`, and `Sohee`.
 - `language`: keep `Auto` for mixed Chinese and English; use `Chinese` or `English` only for a language-specific deployment.
-- `instruct`: controls speaking style. The default asks for a natural, warm and clear conversational delivery.
+- `instruct`: controls speaking style. The default asks for a gentle, natural young female voice with relaxed pacing, soft intonation and standard Mandarin.
 - `streaming_interval`: `0.32` seconds balances first-audio latency and MLX overhead on the M1 Pro certification target.
 - `pcm_chunk_ms`: emits 40 ms PCM16 chunks to the browser scheduler after each model chunk arrives.
 

@@ -79,9 +79,9 @@ class SherpaVadAsr:
 
         vad_config = sherpa_onnx.VadModelConfig()
         vad_config.silero_vad.model = str(vad_model)
-        vad_config.silero_vad.threshold = float(self.config.get("vad_threshold", 0.60))
-        vad_config.silero_vad.min_silence_duration = float(self.config.get("min_silence_seconds", 0.40))
-        vad_config.silero_vad.min_speech_duration = float(self.config.get("min_speech_seconds", 0.25))
+        vad_config.silero_vad.threshold = float(self.config.get("vad_threshold", 0.70))
+        vad_config.silero_vad.min_silence_duration = float(self.config.get("min_silence_seconds", 2.0))
+        vad_config.silero_vad.min_speech_duration = float(self.config.get("min_speech_seconds", 0.35))
         vad_config.silero_vad.max_speech_duration = float(self.config.get("max_speech_seconds", 30.0))
         vad_config.sample_rate = 16_000
         self.vad_window_size = vad_config.silero_vad.window_size

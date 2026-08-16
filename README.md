@@ -56,6 +56,8 @@ Both modes append bridge and Runtime output to `.muxiva/runtime.log`; use
 
 Open the printed DSH URL, create or open a session, then select the large voice orb above the composer. Its halo follows input energy and the visible status moves through listening, hearing, thinking and speaking. Once connected, the large orb toggles microphone mute without stopping the WebSocket, AudioWorklet or Graph. Muting admits no PCM, explicitly pauses the Muxiva audio Source, and resets VAD/ASR before resume; the small **End** control performs a full shutdown. VAD onset is only a candidate: playback and the active Agent turn are cancelled only after ASR produces non-empty text. Empty detections return to listening instead of leaving the UI waiting.
 
+The conversational defaults wait for 2 seconds of continuous silence before emitting ASR Final, and use a stricter `0.70` VAD threshold plus a `350 ms` minimum speech duration to suppress noise triggers. Qwen3-TTS uses `Serena`, its warm, gentle young Mandarin female voice, by default.
+
 ## Published release UX
 
 The public installation path is:

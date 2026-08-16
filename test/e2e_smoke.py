@@ -53,7 +53,7 @@ def main() -> None:
         microphone = np.concatenate((
             np.zeros(4_800, dtype=np.int16),
             microphone,
-            np.zeros(24_000, dtype=np.int16),
+            np.zeros(40_000, dtype=np.int16),
         ))
         websocket.send(json.dumps({"version": "muxiva.dsh.voice/v1", "type": "client.mute"}))
         send_microphone(websocket, microphone)
@@ -79,7 +79,7 @@ def main() -> None:
             assert source.getframerate() == 16_000 and source.getnchannels() == 1
             english = np.frombuffer(source.readframes(source.getnframes()), dtype=np.int16)
         send_microphone(websocket, np.concatenate((
-            np.zeros(4_800, dtype=np.int16), english, np.zeros(24_000, dtype=np.int16),
+            np.zeros(4_800, dtype=np.int16), english, np.zeros(40_000, dtype=np.int16),
         )))
         english_events = receive_turn(websocket)
         english_final = " ".join(item["text"] for item in english_events if item["type"] == "asr.final")

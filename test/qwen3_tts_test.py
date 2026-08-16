@@ -99,6 +99,29 @@ def wait_until(predicate, timeout=2.0):
 
 
 class Qwen3TtsTests(unittest.TestCase):
+    def test_defaults_to_warm_gentle_serena_voice(self):
+        calls = []
+
+        class Model:
+            def generate_custom_voice(self, **kwargs):
+                calls.append(kwargs)
+                yield Result([0.1] * 32)
+
+        node = module.Qwen3Tts({}, lambda _: Model())
+        node.on_prepare()
+        ctx = Context()
+        node.on_process(TextFrame("你好。", sequence=1), ctx)
+        self.assertTrue(wait_until(lambda: not node.results.empty()))
+        while node.pending or not node.results.empty():
+            node.on_process(None, ctx)
+            time.sleep(0.005)
+        node.on_finish()
+
+        self.assertEqual(calls[0]["speaker"], "Serena")
+        self.assertIn("温柔", calls[0]["instruct"])
+        started = next(frame for port, frame in ctx.emissions if getattr(frame, "topic", "") == "muxiva.voice.tts.started")
+        self.assertEqual(json.loads(started.payload)["speaker"], "Serena")
+
     def test_streams_pcm_and_emits_qwen_state(self):
         calls = []
 

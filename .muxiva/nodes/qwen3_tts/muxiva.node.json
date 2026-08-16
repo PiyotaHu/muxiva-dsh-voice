@@ -21,9 +21,9 @@
     "type": "object",
     "properties": {
       "model_dir": {"type":"string","default":".models/qwen3-tts-12hz-0.6b-customvoice-8bit"},
-      "speaker": {"type":"string","enum":["Vivian","Serena","Uncle_Fu","Dylan","Eric","Ryan","Aiden","Ono_Anna","Sohee"],"default":"Vivian"},
+      "speaker": {"type":"string","enum":["Vivian","Serena","Uncle_Fu","Dylan","Eric","Ryan","Aiden","Ono_Anna","Sohee"],"default":"Serena"},
       "language": {"type":"string","enum":["Auto","Chinese","English"],"default":"Auto"},
-      "instruct": {"type":"string","maxLength":512,"default":"自然、温暖、清晰的对话语气。"},
+      "instruct": {"type":"string","maxLength":512,"default":"用温柔、自然、亲切的年轻女性声音说话，语速舒缓，语调柔和，使用标准普通话，不要夸张。"},
       "streaming_interval": {"type":"number","minimum":0.16,"maximum":2.0,"default":0.32},
       "pcm_chunk_ms": {"type":"integer","minimum":20,"maximum":100,"default":40}
     },

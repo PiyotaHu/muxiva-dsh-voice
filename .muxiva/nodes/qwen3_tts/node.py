@@ -85,7 +85,7 @@ class Qwen3Tts:
                 self._event(ctx, "muxiva.voice.tts.started", {
                     "text_chars": len(text),
                     "engine": "qwen3-tts-mlx",
-                    "speaker": str(self.config.get("speaker", "Vivian")),
+                    "speaker": str(self.config.get("speaker", "Serena")),
                 }, frame.sequence)
                 ctx.schedule_next_tick(10)
             return
@@ -154,9 +154,12 @@ class Qwen3Tts:
                 try:
                     stream = model.generate_custom_voice(
                         text=text,
-                        speaker=str(self.config.get("speaker", "Vivian")),
+                        speaker=str(self.config.get("speaker", "Serena")),
                         language=str(self.config.get("language", "Auto")),
-                        instruct=str(self.config.get("instruct", "自然、温暖、清晰的对话语气。")),
+                        instruct=str(self.config.get(
+                            "instruct",
+                            "用温柔、自然、亲切的年轻女性声音说话，语速舒缓，语调柔和，使用标准普通话，不要夸张。",
+                        )),
                         stream=True,
                         streaming_interval=float(self.config.get("streaming_interval", 0.32)),
                     )
