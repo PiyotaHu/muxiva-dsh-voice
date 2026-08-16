@@ -74,9 +74,12 @@ jobs:
         shell: bash
         run: |
           version="$(node -p 'require("./package.json").version')"
+          release_flags=()
+          if [[ "$version" == *-* ]]; then release_flags+=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" \
             "${{ steps.pack.outputs.package }}" \
             "benchmarks/results/v${version}-m1-pro.json" \
             --verify-tag \
             --title "Muxiva Voice $GITHUB_REF_NAME" \
-            --notes-file "docs/releases/${version}.md"
+            --notes-file "docs/releases/${version}.md" \
+            "${release_flags[@]}"
