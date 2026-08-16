@@ -11,6 +11,7 @@ permissions:
 jobs:
   npm:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: npm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,6 +37,7 @@ jobs:
       - name: Smoke the packed plugin in a clean DSH rc.6 Web profile
         shell: bash
         run: |
+          npm install --global pnpm@10.32.1
           smoke_home="$RUNNER_TEMP/dsh-smoke"
           export DSH_HOME="$smoke_home"
           npx --yes @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile web add "./${{ steps.pack.outputs.package }}"
