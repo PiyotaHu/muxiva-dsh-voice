@@ -61,6 +61,16 @@ def main() -> None:
         assert not any(item["type"].startswith(("speech.", "asr.")) for item in muted_events), muted_events
         websocket.send(json.dumps({"version": "muxiva.dsh.voice/v1", "type": "client.unmute"}))
         time.sleep(0.1)
+
+        # SenseVoice can decode pure hum as a short English token when it is
+        # invoked without a quality gate. The production VAD + final gate must
+        # never admit this fixture as an interruption or Agent prompt.
+        positions = np.arange(32_000, dtype=np.float32)
+        hum = (0.02 * np.sin(2 * np.pi * 120 * positions / 16_000) * 32767).astype(np.int16)
+        send_microphone(websocket, np.concatenate((hum, np.zeros(40_000, dtype=np.int16))))
+        noise_events = receive_available(websocket, 0.75)
+        assert not any(item["type"] in {"barge.in", "asr.final"} for item in noise_events), noise_events
+
         send_microphone(websocket, microphone)
 
         voice_events = receive_turn(websocket)

@@ -22,12 +22,12 @@ Server controls:
 | --- | --- |
 | `server.ready` | Graph transport is ready. |
 | `speech.started` / `speech.stopped` | Silero VAD boundary. |
-| `barge.in` | Sustained high-confidence VAD or an earlier non-empty ASR partial has confirmed speech; cancel old playback/TTS and the running Agent turn. |
+| `barge.in` | A non-empty ASR partial or an admitted multilingual Final has confirmed speech; cancel old playback/TTS and the running Agent turn. |
 | `asr.partial` / `asr.final` | Preview-only text / Agent-admitted text. |
-| `asr.rejected` | The VAD segment produced no text; return to listening without prompting DSH. |
+| `asr.rejected` | The segment was empty, too short, non-speech, or outside the accepted language set; return to listening without prompting DSH. |
 | `tts.started` / `tts.stopped` | Synthesis state; the browser drains scheduled PCM before returning to listening. |
 | `pipeline.metrics` | Bounded latency and queue gauges. |
 | `pipeline.error` | User-actionable local failure. |
 | `benchmark.audio.admitted` | Test-only acknowledgement emitted after the marked PCM chunk becomes a Muxiva AudioFrame. |
 
-Only `asr.final` is submitted to DSH. `speech.started` is deliberately advisory. A high-confidence VAD segment that has already passed Silero's configured minimum speech duration, an earlier non-empty streaming partial, or the multilingual final emits `barge.in`; only then are current TTS/playback and the running DSH turn cancelled. Empty VAD segments emit `asr.rejected`. Generation identifiers in Muxiva discard late worker results.
+Only `asr.final` is submitted to DSH. `speech.started` is deliberately advisory. A non-empty streaming partial or a multilingual Final that passes the language/event/length gate emits `barge.in`; only then are current TTS/playback and the running DSH turn cancelled. VAD alone never interrupts. Rejected segments emit `asr.rejected`. Generation identifiers in Muxiva discard late worker results.

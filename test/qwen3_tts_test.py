@@ -119,6 +119,9 @@ class Qwen3TtsTests(unittest.TestCase):
 
         self.assertEqual(calls[0]["speaker"], "Serena")
         self.assertIn("温柔", calls[0]["instruct"])
+        self.assertEqual(calls[0]["temperature"], 0.65)
+        self.assertEqual(calls[0]["top_k"], 30)
+        self.assertEqual(calls[0]["top_p"], 0.85)
         started = next(frame for port, frame in ctx.emissions if getattr(frame, "topic", "") == "muxiva.voice.tts.started")
         self.assertEqual(json.loads(started.payload)["speaker"], "Serena")
 
@@ -162,6 +165,10 @@ class Qwen3TtsTests(unittest.TestCase):
             "speaker": "Vivian",
             "language": "Chinese",
             "instruct": "自然地说。",
+            "temperature": 0.65,
+            "top_k": 30,
+            "top_p": 0.85,
+            "repetition_penalty": 1.05,
             "stream": True,
             "streaming_interval": 0.32,
         })

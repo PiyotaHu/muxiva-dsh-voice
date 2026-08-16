@@ -17,6 +17,11 @@ import muxiva
 
 class Qwen3Tts:
     SAMPLE_RATE = 24_000
+    DEFAULT_INSTRUCT = (
+        "保持温柔、平静、耐心且克制的年轻女性口吻。全文使用统一的中等偏慢语速，"
+        "每分钟约二百二十个汉字；保持稳定的中低音区和一致的音量，句尾自然下降，"
+        "停顿舒缓。不要突然加速、抬高音调、切换情绪，也不要使用播音腔或夸张表演。"
+    )
 
     def __init__(
         self,
@@ -89,6 +94,7 @@ class Qwen3Tts:
                     "text_chars": len(text),
                     "engine": "qwen3-tts-mlx",
                     "speaker": str(self.config.get("speaker", "Serena")),
+                    "prosody": "stable-gentle-v1",
                 }, frame.sequence)
                 ctx.schedule_next_tick(10)
             return
@@ -178,8 +184,12 @@ class Qwen3Tts:
                         language=str(self.config.get("language", "Auto")),
                         instruct=str(self.config.get(
                             "instruct",
-                            "用温柔、自然、亲切的年轻女性声音说话，语速舒缓，语调柔和，使用标准普通话，不要夸张。",
+                            self.DEFAULT_INSTRUCT,
                         )),
+                        temperature=float(self.config.get("temperature", 0.65)),
+                        top_k=int(self.config.get("top_k", 30)),
+                        top_p=float(self.config.get("top_p", 0.85)),
+                        repetition_penalty=float(self.config.get("repetition_penalty", 1.05)),
                         stream=True,
                         streaming_interval=float(self.config.get("streaming_interval", 0.32)),
                     )

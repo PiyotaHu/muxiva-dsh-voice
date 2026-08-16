@@ -102,7 +102,6 @@ class SherpaVadAsrTests(unittest.TestCase):
         node.vad_buffer = [1, 2, 3]
         node.vad_offset = 99
         node.speaking = True
-        node.speaking_samples = 99
         node.barge_in_confirmed = True
         node.last_partial = "残留"
         ctx = Context()
@@ -115,7 +114,6 @@ class SherpaVadAsrTests(unittest.TestCase):
         self.assertEqual(node.vad_buffer, [])
         self.assertEqual(node.vad_offset, 0)
         self.assertFalse(node.speaking)
-        self.assertEqual(node.speaking_samples, 0)
         self.assertFalse(node.barge_in_confirmed)
         self.assertEqual(node.last_partial, "")
         self.assertEqual(ctx.counters["asr.microphone_state_resets"], 1)
@@ -126,18 +124,37 @@ class SherpaVadAsrTests(unittest.TestCase):
         self.assertEqual(node.vad.resets, 2)
         self.assertEqual(ctx.gauges["microphone.muted"], 0)
 
-    def test_sustained_vad_or_asr_text_confirms_barge_in_once(self):
-        node = module.SherpaVadAsr({"barge_in_min_chars": 1, "barge_in_vad_hold_ms": 0})
+    def test_two_asr_characters_confirm_barge_in_once(self):
+        node = module.SherpaVadAsr({"barge_in_min_chars": 2})
         ctx = Context()
 
-        node._advance_barge_in(ctx, 8, 320)
+        node._preview(ctx, 8, "你")
+        self.assertEqual(ctx.signals, [])
+
+        node._preview(ctx, 8, "你好")
         self.assertEqual(len(ctx.signals), 1)
         self.assertEqual(ctx.signals[0][0], "muxiva.voice.barge_in.confirmed")
-        self.assertEqual(ctx.signals[0][1]["stage"], "vad_hold")
+        self.assertEqual(ctx.signals[0][1]["stage"], "partial")
         self.assertEqual(ctx.counters["barge_in.confirmed"], 1)
 
-        node._preview(ctx, 8, "你")
+        node._preview(ctx, 8, "你好啊")
         self.assertEqual(len(ctx.signals), 1, "one utterance must confirm barge-in only once")
+
+    def test_final_quality_gate_rejects_noise_languages_events_and_short_text(self):
+        node = module.SherpaVadAsr({
+            "accepted_final_languages": ["zh", "en"],
+            "min_final_chars": 2,
+        })
+
+        def result(language, event):
+            return types.SimpleNamespace(lang=f"<|{language}|>", event=f"<|{event}|>")
+
+        self.assertEqual(node._final_rejection(result("ko", "Speech"), "그."), "unsupported_language")
+        self.assertEqual(node._final_rejection(result("ja", "Speech"), "はい。"), "unsupported_language")
+        self.assertEqual(node._final_rejection(result("en", "BGM"), "music"), "non_speech_event")
+        self.assertEqual(node._final_rejection(result("en", "Speech"), "I."), "too_short")
+        self.assertIsNone(node._final_rejection(result("zh", "Speech"), "你好。"))
+        self.assertIsNone(node._final_rejection(result("en", "Speech"), "Hi."))
 
     def test_empty_vad_segment_is_rejected_and_returns_to_listening(self):
         node = module.SherpaVadAsr({})

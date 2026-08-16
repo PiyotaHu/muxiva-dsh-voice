@@ -23,7 +23,11 @@
       "model_dir": {"type":"string","default":".models/qwen3-tts-12hz-0.6b-customvoice-8bit"},
       "speaker": {"type":"string","enum":["Vivian","Serena","Uncle_Fu","Dylan","Eric","Ryan","Aiden","Ono_Anna","Sohee"],"default":"Serena"},
       "language": {"type":"string","enum":["Auto","Chinese","English"],"default":"Auto"},
-      "instruct": {"type":"string","maxLength":512,"default":"用温柔、自然、亲切的年轻女性声音说话，语速舒缓，语调柔和，使用标准普通话，不要夸张。"},
+      "instruct": {"type":"string","maxLength":512,"default":"保持温柔、平静、耐心且克制的年轻女性口吻。全文使用统一的中等偏慢语速，每分钟约二百二十个汉字；保持稳定的中低音区和一致的音量，句尾自然下降，停顿舒缓。不要突然加速、抬高音调、切换情绪，也不要使用播音腔或夸张表演。"},
+      "temperature": {"type":"number","minimum":0.1,"maximum":1.5,"default":0.65},
+      "top_k": {"type":"integer","minimum":1,"maximum":100,"default":30},
+      "top_p": {"type":"number","minimum":0.1,"maximum":1.0,"default":0.85},
+      "repetition_penalty": {"type":"number","minimum":1.0,"maximum":2.0,"default":1.05},
       "streaming_interval": {"type":"number","minimum":0.16,"maximum":2.0,"default":0.32},
       "pcm_chunk_ms": {"type":"integer","minimum":20,"maximum":100,"default":40},
       "playback_lookahead_ms": {"type":"integer","minimum":80,"maximum":240,"default":160}

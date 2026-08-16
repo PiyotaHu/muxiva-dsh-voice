@@ -55,15 +55,17 @@ The test synthesizes a Chinese sentence, routes all resulting browser PCM back a
 
 Edit `graph.json` in Muxiva Studio, or override the Node configuration:
 
-- `vad_threshold`: lower hears quieter speech; the false-trigger-resistant default is `0.70`.
-- `min_speech_seconds`: candidates shorter than this are rejected; `0.02` is the low-latency default after the `0.70` Silero threshold has been crossed.
-- `min_silence_seconds`: lower commits faster but may split sentences; the conversational default is `0.45`.
-- `barge_in_min_chars`: number of non-space preview characters required for the ASR-partial confirmation path; `1` is the default. Sustained high-confidence VAD can confirm earlier.
-- `barge_in_vad_hold_ms`: extra hold after Silero's own minimum-speech gate before confirming interruption; the low-latency default is `0`.
+- `vad_threshold`: lower hears quieter speech; the false-trigger-resistant default is `0.75`.
+- `min_speech_seconds`: candidates shorter than this are rejected; `0.35` is the default.
+- `min_silence_seconds`: lower commits faster but may split sentences; the conversational default is `2.0`, so thinking pauses do not emit an early Final.
+- `barge_in_min_chars`: number of non-space preview characters required to confirm interruption; `2` is the default. VAD alone never cancels playback or the Agent turn.
+- `accepted_final_languages`: defaults to `zh` and `en`; SenseVoice Japanese, Korean and Cantonese classifications are rejected before reaching DSH.
+- `min_final_chars`: rejects punctuation-only and one-character hallucinations such as noise decoded as `I.`; the default is `2`.
 - `final_language`: `auto` detects Chinese or English; pin `zh` or `en` only for a language-specific deployment.
 - `speaker`: `Serena` is the default warm, gentle Mandarin female voice. Other bundled voices are `Vivian`, `Uncle_Fu`, `Dylan`, `Eric`, `Ryan`, `Aiden`, `Ono_Anna`, and `Sohee`.
 - `language`: keep `Auto` for mixed Chinese and English; use `Chinese` or `English` only for a language-specific deployment.
-- `instruct`: controls speaking style. The default asks for a gentle, natural young female voice with relaxed pacing, soft intonation and standard Mandarin.
+- `instruct`: controls speaking style. The default fixes one calm, patient emotional register, an approximately 220-Chinese-character/minute pace, stable low-mid pitch and falling sentence endings.
+- `temperature`, `top_k`, `top_p`: the defaults (`0.65`, `30`, `0.85`) reduce per-phrase prosody drift while retaining natural variation.
 - `streaming_interval`: `0.32` seconds balances first-audio latency and MLX overhead on the M1 Pro certification target.
 - `pcm_chunk_ms`: emits 40 ms PCM16 chunks to the browser scheduler after each model chunk arrives.
 - `playback_lookahead_ms`: bounds how far the node may enqueue synthesized PCM ahead of real time; the default is `160` ms.

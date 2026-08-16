@@ -23,7 +23,6 @@ class SherpaVadAsr:
         self.vad_window_size = 512
         self.vad_offset = 0
         self.speaking = False
-        self.speaking_samples = 0
         self.muted = False
         self.barge_in_confirmed = False
         self.last_partial = ""
@@ -80,7 +79,7 @@ class SherpaVadAsr:
 
         vad_config = sherpa_onnx.VadModelConfig()
         vad_config.silero_vad.model = str(vad_model)
-        vad_config.silero_vad.threshold = float(self.config.get("vad_threshold", 0.70))
+        vad_config.silero_vad.threshold = float(self.config.get("vad_threshold", 0.75))
         vad_config.silero_vad.min_silence_duration = float(self.config.get("min_silence_seconds", 2.0))
         vad_config.silero_vad.min_speech_duration = float(self.config.get("min_speech_seconds", 0.35))
         vad_config.silero_vad.max_speech_duration = float(self.config.get("max_speech_seconds", 30.0))
@@ -110,7 +109,6 @@ class SherpaVadAsr:
             detected = self.vad.is_speech_detected()
             if detected and not self.speaking:
                 self.speaking = True
-                self.speaking_samples = 0
                 self.barge_in_confirmed = False
                 self.last_partial = ""
                 ctx.increment_counter("vad.candidates")
@@ -125,7 +123,6 @@ class SherpaVadAsr:
                 self.vad.pop()
                 self._commit(ctx, frame.sequence, utterance)
         if self.speaking:
-            self._advance_barge_in(ctx, frame.sequence, len(samples))
             self._preview(ctx, frame.sequence, partial)
         if self.vad_offset > window * 20:
             self.vad_buffer = self.vad_buffer[self.vad_offset - window * 4:]
@@ -146,7 +143,6 @@ class SherpaVadAsr:
         self.vad_buffer = self.np.empty(0, dtype=self.np.float32)
         self.vad_offset = 0
         self.speaking = False
-        self.speaking_samples = 0
         self.barge_in_confirmed = False
         self.last_partial = ""
         ctx.publish_notification("muxiva.voice.asr.reset", {"reason": reason})
@@ -160,30 +156,40 @@ class SherpaVadAsr:
             self.recognizer.decode_stream(self.stream)
         preview_text = self.recognizer.get_result(self.stream).strip()
         text = preview_text
+        result = None
         self._event(ctx, "muxiva.voice.speech.stopped", {"active": False, "detector": "silero"}, sequence)
         started = time.monotonic_ns()
         if len(utterance) > 0:
             final_stream = self.final_recognizer.create_stream()
             final_stream.accept_waveform(16_000, utterance)
             self.final_recognizer.decode_stream(final_stream)
-            text = final_stream.result.text.strip() or preview_text
+            result = final_stream.result
+            text = result.text.strip() or preview_text
         process_ms = max(0, (time.monotonic_ns() - started) // 1_000_000)
         ctx.set_gauge("asr.final_process_ms", process_ms)
-        if text:
+        rejection = self._final_rejection(result, text)
+        language = self._sensevoice_tag(result, "lang")
+        event = self._sensevoice_tag(result, "event")
+        if text and rejection is None:
             self._confirm_barge_in(ctx, sequence, text, "final")
             ctx.increment_counter("asr.finals")
             ctx.emit("text_out", muxiva.TextFrame(text, sequence=sequence))
             self._event(ctx, "muxiva.voice.transcript.completed", {
                 "text": text,
                 "recognizer": "sensevoice",
-                "language": str(self.config.get("final_language", "auto")),
+                "language": language or str(self.config.get("final_language", "auto")),
+                "event": event or "unknown",
                 "processing_ms": process_ms,
             }, sequence)
         else:
             ctx.increment_counter("asr.rejected")
+            reason = rejection or "no_text"
+            ctx.increment_counter(f"asr.rejected.{reason}")
             self._event(ctx, "muxiva.voice.transcript.rejected", {
-                "reason": "no_text",
+                "reason": reason,
                 "detector": "silero",
+                "language": language or "unknown",
+                "event": event or "unknown",
                 "processing_ms": process_ms,
             }, sequence)
         self.stream = self.recognizer.create_stream()
@@ -201,13 +207,28 @@ class SherpaVadAsr:
         if len(partial.replace(" ", "")) >= minimum:
             self._confirm_barge_in(ctx, sequence, partial, "partial")
 
-    def _advance_barge_in(self, ctx, sequence: int, samples: int) -> None:
-        if self.barge_in_confirmed:
-            return
-        self.speaking_samples += samples
-        hold_ms = int(self.config.get("barge_in_vad_hold_ms", 0))
-        if self.speaking_samples * 1000 >= hold_ms * 16_000:
-            self._confirm_barge_in(ctx, sequence, "", "vad_hold")
+    def _final_rejection(self, result, text: str) -> str | None:
+        if not text:
+            return "no_text"
+        language = self._sensevoice_tag(result, "lang")
+        configured = self.config.get("accepted_final_languages", ["zh", "en"])
+        allowed = {str(value).lower() for value in configured} if isinstance(configured, list) else {"zh", "en"}
+        if language and language not in allowed:
+            return "unsupported_language"
+        event = self._sensevoice_tag(result, "event")
+        if event and event != "speech":
+            return "non_speech_event"
+        meaningful = sum(character.isalnum() for character in text)
+        if meaningful < int(self.config.get("min_final_chars", 2)):
+            return "too_short"
+        return None
+
+    @staticmethod
+    def _sensevoice_tag(result, attribute: str) -> str:
+        raw = str(getattr(result, attribute, "") or "").strip().lower()
+        if raw.startswith("<|") and raw.endswith("|>"):
+            return raw[2:-2]
+        return raw
 
     def _confirm_barge_in(self, ctx, sequence: int, text: str, stage: str) -> None:
         if self.barge_in_confirmed:

@@ -102,7 +102,7 @@ voice quality.
 - **Browser capture → Muxiva Frame:** `AudioWorklet` capture timestamp to the
   corresponding admitted audio Frame.
 - **Speech onset → barge-in Signal:** first speech sample in the calibrated
-  fixture to sustained high-confidence VAD or earlier non-empty ASR partial
+  fixture to non-empty ASR partial or quality-gated multilingual Final
   admission as `muxiva.voice.barge_in.confirmed`.
 - **Speech end → ASR Final:** last speech sample to the Final accepted for the
   DSH turn; preview text does not count.

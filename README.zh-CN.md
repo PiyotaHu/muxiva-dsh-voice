@@ -34,9 +34,9 @@ Node 的延迟/吞吐、各 Edge 的速率/队列年龄、Node 内部缓冲、Tr
 两种模式都会把桥与 Runtime 输出追加到 `.muxiva/runtime.log`，无界面运行时可直接
 `tail -f .muxiva/runtime.log` 追踪启动失败、ASR/TTS 事件和 Node Host 错误。
 
-进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；浏览器不再注入 PCM，Muxiva Audio Source 进入 paused，并在恢复前重置 VAD/ASR 流。右侧小“结束”按钮才会关闭链路。持续的高置信度 VAD 或更早出现的非空 ASR Partial 会确认打断，清掉旧播放/TTS 并取消旧 DSH Turn；空识别会回到聆听，不会卡在思考状态。
+进入 DSH 会话后点击输入框上方的大型语音 Orb。光环会跟随输入能量，状态会依次显示“聆听 / 识别 / 思考 / 回答”。再次点击大按钮只会静音/恢复麦克风，WebSocket、AudioWorklet 和 Graph 保持常驻；浏览器不再注入 PCM，Muxiva Audio Source 进入 paused，并在恢复前重置 VAD/ASR 流。右侧小“结束”按钮才会关闭链路。VAD 起点只用于提示；只有非空 ASR Partial 或通过质量门禁的多语 Final 才确认打断、清掉旧播放/TTS 并取消旧 DSH Turn。被拒绝的杂音会回到聆听，不会提示 DSH。
 
-低延迟默认端点等待 450 ms 连续静音后产生 ASR Final，并使用 `0.70` VAD 阈值与 Silero 自带的最短语音门控。TTS 默认使用 Qwen3-TTS 的 `Serena`——温暖、轻柔的普通话年轻女声；有界实时 PCM 调度会限制浏览器播放队列的提前量。
+可靠性优先的默认端点等待 2 秒连续静音后产生 ASR Final，并使用 `0.75` VAD 阈值与 350 ms 最短语音门控。SenseVoice Final 只允许有有效文字的中英文语音进入 DSH，非语音事件以及杂音产生的日文、韩文和单字符幻觉会被拒绝。TTS 默认使用 Qwen3-TTS 的 `Serena`，固定平静温柔的语速、音区和情绪采样参数；浏览器会把短碎句聚合成完整语义段，避免音色在每个两三字片段上重新起调。有界实时 PCM 调度仍会限制浏览器播放队列的提前量。
 
 ## 边界
 
