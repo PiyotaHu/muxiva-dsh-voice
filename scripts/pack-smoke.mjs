@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const cache = mkdtempSync(join(tmpdir(), 'muxiva-dsh-pack-'))
-const packed = spawnSync('npm', ['pack', '--dry-run', '--json'], {
+const packed = spawnSync('npm', ['pack', '--json', '--pack-destination', cache], {
   encoding: 'utf8',
   env: { ...process.env, npm_config_cache: cache },
 })
@@ -18,4 +18,21 @@ for (const file of result.files) {
     throw new Error(`tarball contains a generated environment artifact: ${file.path}`)
   }
 }
-console.log(`pack smoke passed · ${result.files.length} files · ${result.unpackedSize} bytes unpacked`)
+
+const installRoot = mkdtempSync(join(tmpdir(), 'muxiva-dsh-install-'))
+const installed = spawnSync('npm', [
+  'install', join(cache, result.filename), '--ignore-scripts', '--no-audit', '--no-fund',
+], {
+  cwd: installRoot,
+  encoding: 'utf8',
+  env: { ...process.env, npm_config_cache: cache },
+})
+if (installed.status !== 0) throw new Error(installed.stderr || installed.stdout)
+const executable = join(installRoot, 'node_modules/.bin/muxiva-dsh-voice')
+if (!existsSync(executable)) throw new Error('installed tarball is missing the muxiva-dsh-voice executable')
+const help = spawnSync(executable, ['--help'], { cwd: installRoot, encoding: 'utf8' })
+if (help.status !== 0 || !help.stdout.includes('muxiva-dsh-voice')) {
+  throw new Error(`installed CLI smoke failed: ${help.stderr || help.stdout}`)
+}
+
+console.log(`pack/install smoke passed · ${result.files.length} files · ${result.unpackedSize} bytes unpacked · CLI linked`)

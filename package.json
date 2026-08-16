@@ -34,7 +34,7 @@
     "README.zh-CN.md"
   ],
   "bin": {
-    "muxiva-dsh-voice": "./scripts/cli.mjs"
+    "muxiva-dsh-voice": "scripts/cli.mjs"
   },
   "dsh": {
     "bundle": {
